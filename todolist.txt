@@ -1,0 +1,74 @@
+# Haskell
+
+===============================
+    ____        __             
+   /  _/____   / /_ _____ ____ 
+   / / / __ \ / __// ___// __ \
+ _/ / / / / // /_ / /   / /_/ /
+/___//_/ /_/ \__//_/    \____/ 
+
+===============================
+
+The task is basically using provided parsers to construct customized parsers and finish parsing
+
+Parsers can parse specific Char or String and return it’s value
+
+Known basic parser list (with examples):
+01. string “False”		parse “False”			return “False”
+02. char ‘,’ 			parse ‘,’			return ‘,’
+03. digit			parse 0-9			return ‘0’-‘9’
+
+
+
+To combine parsers:
+01. many / many1		duplicate
+02. lexeme $ 			remove space after
+03. <|>				or
+04. <+>				a->a->[a], multi
+05. <++>			[a]->[a]->[a], concat
+06. <:>				a->[a]->[a], concat
+07. <?>
+08. <*>
+09. *>				a->b->b
+10. <*				a->b->a
+
+01.
+http://research.microsoft.com/en-us/um/people/daan/download/parsec/parsec.pdf
+
+02.
+http://dev.stephendiehl.com/fun/002_parsers.html
+
+03. Just look at this can finish the project
+https://www.schoolofhaskell.com/school/starting-with-haskell/basics-of-haskell/4-symbolic-calculator-recursion
+
+04. How to combine multi source file in stack
+https://github.com/erikd/language-javascript/tree/new-ast/src/Language/JavaScript/Parser
+
+=================================================
+  ______              __          __ _        __ 
+ /_  __/____     ____/ /____     / /(_)_____ / /_
+  / /  / __ \   / __  // __ \   / // // ___// __/
+ / /  / /_/ /  / /_/ // /_/ /  / // /(__  )/ /_  
+/_/   \____/   \__,_/ \____/  /_//_//____/ \__/  
+                                                 
+=================================================
+
+01. [done] divide by modules
+02. replace Either Double Bool with something else, e.g. data d = x | y | z
+03. remove all left and right (with bool and double) in either expressions
+04. String implementation wrong
+05. reduce ‘(‘ -> “something” -> xxx -> ‘)’, e.g. specify Expr num
+
+
+====================================================
+    ______              __                          
+   / ____/___   ____ _ / /_ __  __ _____ ___   _____
+  / /_   / _ \ / __ `// __// / / // ___// _ \ / ___/
+ / __/  /  __// /_/ // /_ / /_/ // /   /  __/(__  ) 
+/_/     \___/ \__,_/ \__/ \__,_//_/    \___//____/  
+
+====================================================
+
+01. arranged by modules
+02. using combinators as many as possible
+03. exploit symbols that simplified expressions
