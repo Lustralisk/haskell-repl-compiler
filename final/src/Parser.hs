@@ -190,19 +190,17 @@ carParser :: Parser Expr
 carParser = do
     lexeme $ char '('
     lexeme $ string "car"
-    expr1 <- exprParser
-    expr2 <- exprParser
+    expr <- exprParser
     lexeme $ char ')'
-    return (Car expr1 expr2)
+    return (Car expr)
 
 cdrParser :: Parser Expr
 cdrParser = do
     lexeme $ char '('
     lexeme $ string "cdr"
-    expr1 <- exprParser
-    expr2 <- exprParser
+    expr <- exprParser
     lexeme $ char ')'
-    return (Cdr expr1 expr2)
+    return (Cdr expr)
 
 charParser :: Parser Expr
 charParser = do
