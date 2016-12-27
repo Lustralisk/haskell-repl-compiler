@@ -26,6 +26,23 @@ lexeme p = do
 testParser :: Parser Expr -> [Char] -> Either String Expr
 testParser p s = parseOnly p $ pack s
 
+binParser :: Text -> (Expr -> Expr -> Expr) -> Parser Expr
+binParser token op = do
+    lexeme $ char '('
+    lexeme $ string token
+    expr1 <- exprParser
+    expr2 <- exprParser
+    lexeme $ char ')'
+    return (op expr1 expr2)
+
+uniParser :: Text -> (Expr -> Expr) -> Parser Expr
+uniParser token op = do
+    lexeme $ char '('
+    lexeme $ string token
+    expr <- exprParser
+    lexeme $ char ')'
+    return (op expr)
+
 {- Divide declare -}
     
 data Expr
@@ -71,136 +88,49 @@ floatParser = do
     return (Number $ read $ d)
 
 notParser :: Parser Expr
-notParser = do
-    lexeme $ char '('
-    lexeme $ string "not"
-    expr <- exprParser
-    lexeme $ char ')'
-    return (Not expr)
+notParser = uniParser "not" Not
 
 andParser :: Parser Expr
-andParser = do
-    lexeme $ char '('
-    lexeme $ string "and"
-    expr1 <- exprParser
-    expr2 <- exprParser
-    lexeme $ char ')'
-    return (And expr1 expr2)
+andParser = binParser "and" And
 
 orParser :: Parser Expr
-orParser = do
-    lexeme $ char '('
-    lexeme $ string "or"
-    expr1 <- exprParser
-    expr2 <- exprParser
-    lexeme $ char ')'
-    return (Or expr1 expr2)
+orParser = binParser "or" Or
     
 addParser :: Parser Expr
-addParser = do
-    lexeme $ char '('
-    lexeme $ char '+'
-    expr1 <- exprParser
-    expr2 <- exprParser
-    lexeme $ char ')'
-    return (Add expr1 expr2)
+addParser = binParser "+" Add
 
 subParser :: Parser Expr
-subParser = do
-    lexeme $ char '('
-    lexeme $ char '-'
-    expr1 <- exprParser
-    expr2 <- exprParser
-    lexeme $ char ')'
-    return (Sub expr1 expr2)
+subParser = binParser "-" Sub
 
 mulParser :: Parser Expr
-mulParser = do
-    lexeme $ char '('
-    lexeme $ char '*'
-    expr1 <- exprParser
-    expr2 <- exprParser
-    lexeme $ char ')'
-    return (Mul expr1 expr2)
+mulParser = binParser "*" Mul
 
 divParser :: Parser Expr
-divParser = do
-    lexeme $ char '('
-    lexeme $ char '/'
-    expr1 <- exprParser
-    expr2 <- exprParser
-    lexeme $ char ')'
-    return (Div expr1 expr2)
+divParser = binParser "/" Div
 
 eqParser :: Parser Expr
-eqParser = do
-    lexeme $ char '('
-    lexeme $ char '='
-    expr1 <- exprParser
-    expr2 <- exprParser
-    lexeme $ char ')'
-    return (Eq expr1 expr2)
+eqParser = binParser "=" Eq
     
 lwParser :: Parser Expr
-lwParser = do
-    lexeme $ char '('
-    lexeme $ char '<'
-    expr1 <- exprParser
-    expr2 <- exprParser
-    lexeme $ char ')'
-    return (Lw expr1 expr2)
+lwParser = binParser "<" Lw
     
 leParser :: Parser Expr
-leParser = do
-    lexeme $ char '('
-    lexeme $ string "<="
-    expr1 <- exprParser
-    expr2 <- exprParser
-    lexeme $ char ')'
-    return (Le expr1 expr2)
+leParser = binParser "<=" Le
    
 grParser :: Parser Expr
-grParser = do
-    lexeme $ char '('
-    lexeme $ char '>'
-    expr1 <- exprParser
-    expr2 <- exprParser
-    lexeme $ char ')'
-    return (Gr expr1 expr2)
+grParser = binParser ">" Gr
     
 geParser :: Parser Expr
-geParser = do
-    lexeme $ char '('
-    lexeme $ string ">="
-    expr1 <- exprParser
-    expr2 <- exprParser
-    lexeme $ char ')'
-    return (Ge expr1 expr2)
+geParser = binParser ">=" Ge
 
 consParser :: Parser Expr
-consParser = do
-    lexeme $ char '('
-    lexeme $ string "cons"
-    expr1 <- exprParser
-    expr2 <- exprParser
-    lexeme $ char ')'
-    return (Cons expr1 expr2)
+consParser = binParser "cons" Cons
 
 carParser :: Parser Expr
-carParser = do
-    lexeme $ char '('
-    lexeme $ string "car"
-    expr <- exprParser
-    lexeme $ char ')'
-    return (Car expr)
+carParser = uniParser "car" Car
 
 cdrParser :: Parser Expr
-cdrParser = do
-    lexeme $ char '('
-    lexeme $ string "cdr"
-    expr <- exprParser
-    lexeme $ char ')'
-    return (Cdr expr)
+cdrParser = uniParser "cdr" Cdr
 
 charParser :: Parser Expr
 charParser = do

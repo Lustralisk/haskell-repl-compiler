@@ -54,10 +54,10 @@ https://github.com/erikd/language-javascript/tree/new-ast/src/Language/JavaScrip
 =================================================
 
 01. [done] divide by modules
-02. replace Either Double Bool with something else, e.g. data d = x | y | z
-03. remove all left and right (with bool and double) in either expressions
+02. [done] replace Either Double Bool with something else, e.g. data d = x | y | z
+03. [done] remove all left and right (with bool and double) in either expressions
 04. String implementation wrong
-05. reduce ‘(‘ -> “something” -> xxx -> ‘)’, e.g. specify Expr num
+05. [done] reduce ‘(‘ -> “something” -> xxx -> ‘)’, e.g. specify Expr num
 
 
 ====================================================
@@ -69,6 +69,7 @@ https://github.com/erikd/language-javascript/tree/new-ast/src/Language/JavaScrip
 
 ====================================================
 
-01. arranged by modules
-02. using combinators as many as possible
-03. exploit symbols that simplified expressions
+01. arrange source files by modules
+02. using combinators as many as possible (parser combinators)
+03. Monad style
+04. exploit symbols that simplified expressions
