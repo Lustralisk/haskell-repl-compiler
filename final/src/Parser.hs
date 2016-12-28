@@ -66,14 +66,13 @@ data Expr
     | Cdr Expr
     | Cons Expr Expr
     | CharLit Char
-    | StringLit String
     deriving Show
 
 exprParser :: Parser Expr
 exprParser = falseParser <|> trueParser <|> notParser <|> andParser <|> orParser <|> 
              floatParser <|> addParser <|> subParser <|> mulParser <|> divParser <|> 
              eqParser <|> lwParser <|> leParser <|> grParser <|> geParser <|> 
-             charParser <|> stringParser <|> consParser <|> carParser <|> cdrParser
+             charParser <|> stringParser <|> consParser <|> carParser <|> cdrParser <|> nilParser
 
 falseParser :: Parser Expr
 falseParser = lexeme $ string "False" $> FalseLit
@@ -123,6 +122,9 @@ grParser = binParser ">" Gr
 geParser :: Parser Expr
 geParser = binParser ">=" Ge
 
+nilParser :: Parser Expr
+nilParser = lexeme $ string "Nil" $> Nil
+
 consParser :: Parser Expr
 consParser = binParser "cons" Cons
 
@@ -141,4 +143,6 @@ charParser = do
 stringParser :: Parser Expr
 stringParser = do
     s <- lexeme $ string "''" *> manyTill anyChar (string "''")
-    return (StringLit s)
+    return $ construct s
+        where construct [] = Nil
+              construct (x:xs) = Cons (CharLit x) (construct xs)
