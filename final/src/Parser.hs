@@ -139,7 +139,6 @@ charParser = do
     c <- lexeme $ char '\'' *> anyChar <* char '\''
     return (CharLit c)
 
-{- WARN stringlit incorrect -}
 stringParser :: Parser Expr
 stringParser = do
     s <- lexeme $ string "''" *> manyTill anyChar (string "''")
