@@ -56,7 +56,7 @@ https://github.com/erikd/language-javascript/tree/new-ast/src/Language/JavaScrip
 01. [done] divide by modules
 02. [done] replace Either Double Bool with something else, e.g. data d = x | y | z
 03. [done] remove all left and right (with bool and double) in either expressions
-04. String implementation wrong
+04. [done] String implementation wrong
 05. [done] reduce ‘(‘ -> “something” -> xxx -> ‘)’, e.g. specify Expr num
 
 
