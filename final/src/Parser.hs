@@ -66,13 +66,15 @@ data Expr
     | Cdr Expr
     | Cons Expr Expr
     | CharLit Char
+    | Variable Text
     deriving Show
 
 exprParser :: Parser Expr
 exprParser = falseParser <|> trueParser <|> notParser <|> andParser <|> orParser <|> 
              floatParser <|> addParser <|> subParser <|> mulParser <|> divParser <|> 
              eqParser <|> lwParser <|> leParser <|> grParser <|> geParser <|> 
-             charParser <|> stringParser <|> consParser <|> carParser <|> cdrParser <|> nilParser
+             charParser <|> stringParser <|> consParser <|> carParser <|> cdrParser <|> nilParser <|>
+             variableParser
 
 falseParser :: Parser Expr
 falseParser = lexeme $ string "False" $> FalseLit
@@ -145,3 +147,58 @@ stringParser = do
     return $ construct s
         where construct [] = Nil
               construct (x:xs) = Cons (CharLit x) (construct xs)
+
+variableParser :: Parser Expr
+variableParser = do
+    vari <- lexeme $ manyTill anyChar (char ' ')
+    return (Variable $ pack vari)
+
+data Statement
+    = StatementList [Statement]
+    | Set Text Expr
+    | Skip
+    | If Expr Statement Statement
+    | While Expr Statement
+
+statementParser :: Parser Statement
+statementParser = statementListParser <|> setParser <|> skipParser <|>
+                  ifParser <|> whileParser
+
+statementListParser :: Parser Statement
+statementListParser = do
+    lexeme $ char '('
+    lexeme $ string "begin"
+    statements <- many1 statementParser
+    lexeme $ char ')'
+    return (StatementList statements)
+
+setParser :: Parser Statement
+setParser = do
+    lexeme $ char '('
+    lexeme $ string "set!"
+    vari <- lexeme $ manyTill anyChar (char ' ')
+    expr <- exprParser
+    lexeme $ char ')'
+    return (Set (pack vari) expr)
+
+skipParser :: Parser Statement
+skipParser = lexeme $ string "skip" $> Skip
+
+ifParser :: Parser Statement
+ifParser = do
+    lexeme $ char '('
+    lexeme $ string "if"
+    expr <- exprParser
+    statement1 <- statementParser
+    statement2 <- statementParser
+    lexeme $ char ')'
+    return (If expr statement1 statement2)
+
+whileParser :: Parser Statement
+whileParser = do
+    lexeme $ char '('
+    lexeme $ string "if"
+    expr <- exprParser
+    statement <- statementParser
+    lexeme $ char ')'
+    return (While expr statement)

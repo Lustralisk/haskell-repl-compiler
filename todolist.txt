@@ -58,6 +58,8 @@ https://github.com/erikd/language-javascript/tree/new-ast/src/Language/JavaScrip
 03. [done] remove all left and right (with bool and double) in either expressions
 04. [done] String implementation wrong
 05. [done] reduce ‘(‘ -> “something” -> xxx -> ‘)’, e.g. specify Expr num
+06. refine print (show functionalities)
+
 
 
 ====================================================
