@@ -43,6 +43,9 @@ uniParser token op = do
     lexeme $ char ')'
     return (op expr)
 
+variNameParser :: Parser [Char]
+variNameParser = lexeme $ manyTill anyChar (char ' ' <|> (char ')'))
+
 {- Divide declare -}
     
 data Expr
@@ -68,6 +71,7 @@ data Expr
     | CharLit Char
     | Vec Text Expr
     | Variable Text
+    | Function Text [Expr]
     deriving Show
 
 exprParser :: Parser Expr
@@ -75,7 +79,7 @@ exprParser = falseParser <|> trueParser <|> notParser <|> andParser <|> orParser
              floatParser <|> addParser <|> subParser <|> mulParser <|> divParser <|> 
              eqParser <|> lwParser <|> leParser <|> grParser <|> geParser <|> 
              charParser <|> stringParser <|> consParser <|> carParser <|> cdrParser <|> nilParser <|>
-             vectorParser <|> variableParser
+             vectorParser <|> functionCallParser <|> variableParser
 
 falseParser :: Parser Expr
 falseParser = lexeme $ string "False" $> FalseLit
@@ -153,15 +157,23 @@ vectorParser :: Parser Expr
 vectorParser = do
     lexeme $ char '('
     lexeme $ string "vector-ref"
-    vari <- lexeme $ manyTill anyChar (char ' ')
+    vari <- variNameParser
     expr <- exprParser
     lexeme $ char ')'
     return (Vec (pack vari) expr)
 
 variableParser :: Parser Expr
 variableParser = do
-    vari <- lexeme $ manyTill anyChar (char ' ')
+    vari <- variNameParser
     return (Variable $ pack vari)
+
+functionCallParser :: Parser Expr
+functionCallParser = do
+    lexeme $ char '('
+    vari <- variNameParser
+    exprs <- many1 exprParser
+    lexeme $ char ')'
+    return (Function (pack vari) exprs)
 
 data Statement
     = StatementList [Statement]
@@ -171,10 +183,12 @@ data Statement
     | While Expr Statement
     | MakeVector Text Expr
     | SetVector Text Expr Expr
+    | Return Expr
+    deriving Show
 
 statementParser :: Parser Statement
 statementParser = statementListParser <|> setParser <|> skipParser <|>
-                  ifParser <|> whileParser <|>
+                  ifParser <|> whileParser <|> returnParser <|>
                   vectorMakeParser <|> vectorSetParser
 
 statementListParser :: Parser Statement
@@ -189,7 +203,7 @@ setParser :: Parser Statement
 setParser = do
     lexeme $ char '('
     lexeme $ string "set!"
-    vari <- lexeme $ manyTill anyChar (char ' ')
+    vari <- variNameParser
     expr <- exprParser
     lexeme $ char ')'
     return (Set (pack vari) expr)
@@ -210,7 +224,7 @@ ifParser = do
 whileParser :: Parser Statement
 whileParser = do
     lexeme $ char '('
-    lexeme $ string "if"
+    lexeme $ string "while"
     expr <- exprParser
     statement <- statementParser
     lexeme $ char ')'
@@ -220,7 +234,7 @@ vectorMakeParser :: Parser Statement
 vectorMakeParser = do
     lexeme $ char '('
     lexeme $ string "make-vector"
-    vari <- lexeme $ manyTill anyChar (char ' ')
+    vari <- variNameParser
     expr <- exprParser
     lexeme $ char ')'
     return (MakeVector (pack vari) expr)
@@ -229,8 +243,35 @@ vectorSetParser :: Parser Statement
 vectorSetParser = do
     lexeme $ char '('
     lexeme $ string "vector-set!"
-    vari <- lexeme $ manyTill anyChar (char ' ')
+    vari <- variNameParser
     expr1 <- exprParser
     expr2 <- exprParser
     lexeme $ char ')'
     return (SetVector (pack vari) expr1 expr2)
+
+returnParser :: Parser Statement
+returnParser = do
+    lexeme $ char '('
+    lexeme $ string "return"
+    expr <- exprParser
+    lexeme $ char ')'
+    return (Return expr)
+
+data Function
+    = Def Text [Text] Statement
+    deriving Show
+
+functionParser :: Parser Function
+functionParser = defFuncParser
+
+defFuncParser :: Parser Function
+defFuncParser = do
+    lexeme $ char '('
+    lexeme $ string "define"
+    lexeme $ char '('
+    func <- variNameParser
+    varis <- many variNameParser
+    lexeme $ char ')'
+    stat <- statementParser
+    lexeme $ char ')'
+    return (Def (pack func) (Prelude.map pack varis) stat)
