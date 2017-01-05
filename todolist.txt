@@ -18,7 +18,12 @@ Known basic parser list (with examples):
 02. char ‘,’ 			parse ‘,’			return ‘,’
 03. digit			parse 0-9			return ‘0’-‘9’
 
+To compile & run the code, using:
+01. stack build
+02. stack exec final-exe
 
+To debug the code, using:
+01. stack ghci
 
 To combine parsers:
 01. many / many1		duplicate
@@ -59,8 +64,12 @@ https://github.com/erikd/language-javascript/tree/new-ast/src/Language/JavaScrip
 04. [done] String implementation wrong
 05. [done] reduce ‘(‘ -> “something” -> xxx -> ‘)’, e.g. specify Expr num
 06. refine print (show functionalities)
-
-
+07. add For statement
+08. robustic REPL
+09. accuracy error detection
+10. pretty REPL
+11. modify variable name to Text
+12. fix variable name
 
 ====================================================
     ______              __                          
@@ -74,4 +83,38 @@ https://github.com/erikd/language-javascript/tree/new-ast/src/Language/JavaScrip
 01. arrange source files by modules
 02. using combinators as many as possible (parser combinators)
 03. Monad style
-04. exploit symbols that simplified expressions
+04. exploit symbols that can simplify expressions
+05. add Show statement to REPL
+
+
+====================================================
+    ______                                __    
+   / ____/_  __ ____ _ ____ ___   ____   / /___ 
+  / __/  | |/_// __ `// __ `__ \ / __ \ / // _ \
+ / /___ _>  < / /_/ // / / / / // /_/ // //  __/
+/_____//_/|_| \__,_//_/ /_/ /_// .___//_/ \___/ 
+                              /_/               
+====================================================
+
+01.
+(+ 1 2.2)
+
+02.
+(begin 
+	(set! abc 1.2)
+	(set! def 3.2)
+	(set! aaa (+ abc def))
+)
+
+03.
+(begin (set! i 1) (set! sum 0) (while (<= i 10) (begin (set! sum (+ sum i )) (set! i (+ i 1)))))
+(begin
+	(set! i 1)
+	(set! sum 0)
+	(while (<= i 10)
+		(begin
+			(set! sum (+ sum i))
+			(set! i (+ i 1))
+		)
+	)
+)
