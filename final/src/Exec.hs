@@ -31,7 +31,7 @@ replLoop env = do
     then return ()
     else
         case words line of
-            ["show", s] -> case M.lookup (toText s) env of
+            ["show", s] -> case M.lookup (toText s) env of {- show cmd -}
                 Just v -> do
                     putStrLn (s ++ " = " ++ (printEvalExpr v))
                     replLoop env
@@ -43,6 +43,3 @@ replLoop env = do
 
 repl :: IO ()
 repl = replLoop M.empty
-
-
-

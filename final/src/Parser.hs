@@ -66,6 +66,7 @@ data Expr
     | Cdr Expr
     | Cons Expr Expr
     | CharLit Char
+    | Vec Text Expr
     | Variable Text
     deriving Show
 
@@ -74,7 +75,7 @@ exprParser = falseParser <|> trueParser <|> notParser <|> andParser <|> orParser
              floatParser <|> addParser <|> subParser <|> mulParser <|> divParser <|> 
              eqParser <|> lwParser <|> leParser <|> grParser <|> geParser <|> 
              charParser <|> stringParser <|> consParser <|> carParser <|> cdrParser <|> nilParser <|>
-             variableParser
+             vectorParser <|> variableParser
 
 falseParser :: Parser Expr
 falseParser = lexeme $ string "False" $> FalseLit
@@ -148,6 +149,15 @@ stringParser = do
         where construct [] = Nil
               construct (x:xs) = Cons (CharLit x) (construct xs)
 
+vectorParser :: Parser Expr
+vectorParser = do
+    lexeme $ char '('
+    lexeme $ string "vector-ref"
+    vari <- lexeme $ manyTill anyChar (char ' ')
+    expr <- exprParser
+    lexeme $ char ')'
+    return (Vec (pack vari) expr)
+
 variableParser :: Parser Expr
 variableParser = do
     vari <- lexeme $ manyTill anyChar (char ' ')
@@ -159,10 +169,13 @@ data Statement
     | Skip
     | If Expr Statement Statement
     | While Expr Statement
+    | MakeVector Text Expr
+    | SetVector Text Expr Expr
 
 statementParser :: Parser Statement
 statementParser = statementListParser <|> setParser <|> skipParser <|>
-                  ifParser <|> whileParser
+                  ifParser <|> whileParser <|>
+                  vectorMakeParser <|> vectorSetParser
 
 statementListParser :: Parser Statement
 statementListParser = do
@@ -202,3 +215,22 @@ whileParser = do
     statement <- statementParser
     lexeme $ char ')'
     return (While expr statement)
+
+vectorMakeParser :: Parser Statement
+vectorMakeParser = do
+    lexeme $ char '('
+    lexeme $ string "make-vector"
+    vari <- lexeme $ manyTill anyChar (char ' ')
+    expr <- exprParser
+    lexeme $ char ')'
+    return (MakeVector (pack vari) expr)
+
+vectorSetParser :: Parser Statement
+vectorSetParser = do
+    lexeme $ char '('
+    lexeme $ string "vector-set!"
+    vari <- lexeme $ manyTill anyChar (char ' ')
+    expr1 <- exprParser
+    expr2 <- exprParser
+    lexeme $ char ')'
+    return (SetVector (pack vari) expr1 expr2)
