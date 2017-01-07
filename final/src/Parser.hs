@@ -44,7 +44,7 @@ uniParser token op = do
     return (op expr)
 
 variNameParser :: Parser [Char]
-variNameParser = lexeme $ manyTill anyChar (char ' ' <|> (char ')'))
+variNameParser = lexeme $ many1 $ choice [char c | c <- ['a'..'z']]
 
 {- Divide declare -}
     
@@ -72,6 +72,7 @@ data Expr
     | Vec Text Expr
     | Variable Text
     | Function Text [Expr]
+    | Let Text Expr Expr
     deriving Show
 
 exprParser :: Parser Expr
@@ -79,7 +80,7 @@ exprParser = falseParser <|> trueParser <|> notParser <|> andParser <|> orParser
              floatParser <|> addParser <|> subParser <|> mulParser <|> divParser <|> 
              eqParser <|> lwParser <|> leParser <|> grParser <|> geParser <|> 
              charParser <|> stringParser <|> consParser <|> carParser <|> cdrParser <|> nilParser <|>
-             vectorParser <|> functionCallParser <|> variableParser
+             vectorParser <|> functionCallParser <|> variableParser <|> letParser
 
 falseParser :: Parser Expr
 falseParser = lexeme $ string "False" $> FalseLit
@@ -175,6 +176,15 @@ functionCallParser = do
     lexeme $ char ')'
     return (Function (pack vari) exprs)
 
+letParser :: Parser Expr
+letParser = do
+    lexeme $ char '('
+    vari <- variNameParser
+    expr1 <- exprParser
+    expr2 <- exprParser
+    lexeme $ char ')'
+    return (Let (pack vari) expr1 expr2)
+
 data Statement
     = StatementList [Statement]
     | Set Text Expr
@@ -269,8 +279,7 @@ defFuncParser = do
     lexeme $ char '('
     lexeme $ string "define"
     lexeme $ char '('
-    func <- variNameParser
-    varis <- many variNameParser
+    (func:varis) <- many1 variNameParser
     lexeme $ char ')'
     stat <- statementParser
     lexeme $ char ')'
