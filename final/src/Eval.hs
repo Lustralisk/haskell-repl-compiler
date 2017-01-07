@@ -50,6 +50,9 @@ evalExprParser env (Function t es) = case M.lookup t env of
     Just (FunctionValue ts stat env') -> case M.lookup "$$result$$" env'' of
         Just v -> v
         where env'' = evalStatementParser (inject env' env ts es) stat
+evalExprParser env (Let t e1 e2) = evalExprParser env' e2 where
+    env' = updateM t (evalExprParser env e1) env
+evalExprParser env (LambdaCall (Lambda t e1) e2) = evalExprParser env (Let t e2 e1)
 {- Need to check whether e1, e2 are Double -}
 {- Need to due with Inf -}
 evalExprParser env (Add e1 e2) = DoubleValue (v1 + v2)

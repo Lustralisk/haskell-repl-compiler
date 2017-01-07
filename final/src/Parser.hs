@@ -73,6 +73,8 @@ data Expr
     | Variable Text
     | Function Text [Expr]
     | Let Text Expr Expr
+    | Lambda Text Expr
+    | LambdaCall Expr Expr
     deriving Show
 
 exprParser :: Parser Expr
@@ -80,7 +82,8 @@ exprParser = falseParser <|> trueParser <|> notParser <|> andParser <|> orParser
              floatParser <|> addParser <|> subParser <|> mulParser <|> divParser <|> 
              eqParser <|> lwParser <|> leParser <|> grParser <|> geParser <|> 
              charParser <|> stringParser <|> consParser <|> carParser <|> cdrParser <|> nilParser <|>
-             vectorParser <|> functionCallParser <|> variableParser <|> letParser
+             letParser <|> lambdaParser <|> lambdaCallParser <|>
+             vectorParser <|> functionCallParser <|> variableParser
 
 falseParser :: Parser Expr
 falseParser = lexeme $ string "False" $> FalseLit
@@ -179,11 +182,29 @@ functionCallParser = do
 letParser :: Parser Expr
 letParser = do
     lexeme $ char '('
+    lexeme $ string "let"
     vari <- variNameParser
     expr1 <- exprParser
     expr2 <- exprParser
     lexeme $ char ')'
     return (Let (pack vari) expr1 expr2)
+
+lambdaParser :: Parser Expr
+lambdaParser = do
+    lexeme $ char '('
+    lexeme $ string "lambda"
+    vari <- variNameParser
+    expr <- exprParser
+    lexeme $ char ')'
+    return (Lambda (pack vari) expr)
+
+lambdaCallParser :: Parser Expr
+lambdaCallParser = do
+    lexeme $ char '('
+    lamb <- lambdaParser
+    expr <- exprParser
+    lexeme $ char ')'
+    return (LambdaCall lamb expr)
 
 data Statement
     = StatementList [Statement]
