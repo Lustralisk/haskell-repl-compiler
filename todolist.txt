@@ -85,7 +85,7 @@ https://github.com/erikd/language-javascript/tree/new-ast/src/Language/JavaScrip
 03. Monad style
 04. exploit symbols that can simplify expressions
 05. add Show statement to REPL
-06. lazy evaluation for nest function call
+06. lazy evaluation for nested function call
 
 
 ====================================================
@@ -111,6 +111,20 @@ DoubleValue 1.0
 >>> env'' = evalFunction env' "(define (foo x) (if (> x 0) (begin (return (* x (foo (- x 1))))) (return 1)))"
 >>> evalExpr env'' "(foo 4)"
 DoubleValue 24.0
+
+>>> import Control.Applicative
+>>> import Control.Monad
+>>> import Data.Functor
+>>> import Data.Text
+>>> import Data.Attoparsec.Text
+>>> parseOnly exprParser $ pack "(+ 1 2)"
+Right (Add (Number 1.0) (Number 2.0))
+>>> parseOnly functionParser $ pack "(define (foo x) (if (> x 0) (begin (return (* x (foo (- x 1))))) (return 1)))"
+Right (Def "foo" ["x"] (If (Gr (Variable "x") (Number 0.0)) (StatementList [Return (Mul (Variable "x") (Function "foo" [Sub (Variable "x") (Number 1.0)]))]) (Return (Number 1.0))))
+>>> parseOnly exprParser $ pack "(+ 1 True)"
+Right (Add (Number 1.0) TrueLit) 				-- error case
+>>> parseOnly exprParser $ pack "(+ 1 2.)"
+Left "Failed reading: empty" 					-- parseOnly error report
 
 01.
 (+ 1 2.2)
