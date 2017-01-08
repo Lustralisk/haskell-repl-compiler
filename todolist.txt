@@ -97,6 +97,21 @@ https://github.com/erikd/language-javascript/tree/new-ast/src/Language/JavaScrip
                               /_/               
 ====================================================
 
+00.
+$ stack ghci
+>>> import qualified Data.Map as M
+>>> env = M.empty
+>>> evalExpr env "(+ 1 3)"
+DoubleValue 4.0
+>>> env' = evalStatement env "(set! x 1)"
+>>> env'
+fromList [("x",DoubleValue 1.0)]
+>>> evalExpr env' "x"
+DoubleValue 1.0
+>>> env'' = evalFunction env' "(define (foo x) (if (> x 0) (begin (return (* x (foo (- x 1))))) (return 1)))"
+>>> evalExpr env'' "(foo 4)"
+DoubleValue 24.0
+
 01.
 (+ 1 2.2)
 

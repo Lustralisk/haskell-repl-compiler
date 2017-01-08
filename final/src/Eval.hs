@@ -52,7 +52,10 @@ evalExprParser env (Function t es) = case M.lookup t env of
         where env'' = evalStatementParser (inject env' env ts es) stat
 evalExprParser env (Let t e1 e2) = evalExprParser env' e2 where
     env' = updateM t (evalExprParser env e1) env
-evalExprParser env (LambdaCall (Lambda t e1) e2) = evalExprParser env (Let t e2 e1)
+{- Not finished yet -}
+{-evalExprParser env (Lambda t e) = (FunctionValue "$$x$$" (Return e) env)
+evalExprParser env (LambdaCall e1 e2) = evalExprParser env (Let t e2 e3)
+    where (Lambda t e3) = evalExprParser env e1-}
 {- Need to check whether e1, e2 are Double -}
 {- Need to due with Inf -}
 evalExprParser env (Add e1 e2) = DoubleValue (v1 + v2)
@@ -155,12 +158,11 @@ evalStatementParser env (Return e) = updateM "$$result$$" (evalExprParser env e)
 --- evalFunctionParser
 -------------------------------------------------------------------------------
 evalFunctionParser :: Env -> Function -> Env
-evalFunctionParser env (Def t ts stat) = do
-    evalStatementParser env' stat where
+evalFunctionParser env (Def t ts stat) = env' where
         env' = updateM t (FunctionValue ts stat env') env
 
-evalExpr :: Env -> Text -> Value
-evalExpr env t = let (Right expr) = (parseOnly exprParser t) in evalExprParser env expr
+evalExpr :: Env -> [Char] -> Value
+evalExpr env t = let (Right expr) = (parseOnly exprParser (pack t)) in evalExprParser env expr
 
 {- Need to somewhat refine -}
 printEvalExpr :: Value -> String

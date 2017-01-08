@@ -1,7 +1,7 @@
 def main():
-	a = 1
 	def f():
 		def g():
+			a = 1
 			print(a)
 		g()
 	def h():
