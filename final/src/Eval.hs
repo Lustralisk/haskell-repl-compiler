@@ -170,6 +170,7 @@ evalFunctionParser env (Def t ts stat) = env' where
 
 
 
+-- All needs error detection
 evalExpr :: Env -> [Char] -> Value
 evalExpr env t = let (Right expr) = (parseOnly exprParser (pack t)) in evalExprParser env expr
 
