@@ -70,6 +70,8 @@ https://github.com/erikd/language-javascript/tree/new-ast/src/Language/JavaScrip
 10. pretty REPL
 11. modify variable name to Text
 12. fix variable name
+13. finish lambda expression
+14. reduce (hist ++ " " ++ line) expression
 
 ====================================================
     ______              __                          
@@ -86,7 +88,7 @@ https://github.com/erikd/language-javascript/tree/new-ast/src/Language/JavaScrip
 04. exploit symbols that can simplify expressions
 05. add Show statement to REPL
 06. lazy evaluation for nested function call
-
+07. smart REPL
 
 ====================================================
     ______                                __    
