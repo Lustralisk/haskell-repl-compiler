@@ -40,7 +40,7 @@ inject env' env ts es = case ts of
         (y:ys) = es
 
 -------------------------------------------------------------------------------
---- evalExprParser 
+--- evalExprParser
 --- Calculate Value of Expr based on given Env
 -------------------------------------------------------------------------------
 evalExprParser :: Env -> Expr -> Value

@@ -15,7 +15,7 @@ import Data.Attoparsec.Text
 (<:>) = liftM2 (\a b -> a:b)
 (<++>) :: Monad m => m [Char] -> m [Char] -> m [Char]
 (<++>) = liftM2 (\a b -> a ++ b)
-    
+
 digits = many1 digit
 
 lexeme :: Parser a -> Parser a
@@ -47,7 +47,7 @@ variNameParser :: Parser [Char]
 variNameParser = lexeme $ many1 $ choice [char c | c <- ['a'..'z']]
 
 {- Divide declare -}
-    
+
 data Expr
     = TrueLit
     | FalseLit
@@ -78,9 +78,9 @@ data Expr
     deriving Show
 
 exprParser :: Parser Expr
-exprParser = falseParser <|> trueParser <|> notParser <|> andParser <|> orParser <|> 
-             floatParser <|> addParser <|> subParser <|> mulParser <|> divParser <|> 
-             eqParser <|> lwParser <|> leParser <|> grParser <|> geParser <|> 
+exprParser = falseParser <|> trueParser <|> notParser <|> andParser <|> orParser <|>
+             floatParser <|> addParser <|> subParser <|> mulParser <|> divParser <|>
+             eqParser <|> lwParser <|> leParser <|> grParser <|> geParser <|>
              charParser <|> stringParser <|> consParser <|> carParser <|> cdrParser <|> nilParser <|>
              letParser <|> lambdaParser <|> lambdaCallParser <|>
              vectorParser <|> functionCallParser <|> variableParser
@@ -105,7 +105,7 @@ andParser = binParser "and" And
 
 orParser :: Parser Expr
 orParser = binParser "or" Or
-    
+
 addParser :: Parser Expr
 addParser = binParser "+" Add
 
@@ -120,16 +120,16 @@ divParser = binParser "/" Div
 
 eqParser :: Parser Expr
 eqParser = binParser "=" Eq
-    
+
 lwParser :: Parser Expr
 lwParser = binParser "<" Lw
-    
+
 leParser :: Parser Expr
 leParser = binParser "<=" Le
-   
+
 grParser :: Parser Expr
 grParser = binParser ">" Gr
-    
+
 geParser :: Parser Expr
 geParser = binParser ">=" Ge
 
