@@ -201,10 +201,11 @@ lambdaParser = do
 lambdaCallParser :: Parser Expr
 lambdaCallParser = do
     lexeme $ char '('
-    lamb <- lambdaParser
-    expr <- exprParser
+    lexeme $ string "apply"
+    expr1 <- exprParser
+    expr2 <- exprParser
     lexeme $ char ')'
-    return (LambdaCall lamb expr)
+    return (LambdaCall expr1 expr2)
 
 data Statement
     = StatementList [Statement]

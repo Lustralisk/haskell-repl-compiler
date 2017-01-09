@@ -22,24 +22,42 @@ mainFunc = do
     mainFunc
 -}
 
-replLoop :: Env -> IO ()
-replLoop env = do
+-------------------------------------------------------------------------------
+--- REPL loop 
+--- REPL commands:
+---   [Expr/Statement/Function]
+---   Show [Variable]
+---   Exec [Expr]
+---   Define [Function]
+-------------------------------------------------------------------------------
+replLoop :: Env -> [Char] -> Int -> IO ()
+replLoop env hist cnt = do
     putStr ">>> "
     hFlush stdout
     line <- getLine
-    if line == ""
-    then return ()
+    if newCount cnt line /= 0
+        then replLoop env (hist ++ " " ++ line) $ newCount cnt line
     else
-        case words line of
-            ["show", s] -> case M.lookup (toText s) env of {- show cmd -}
-                Just v -> do
-                    putStrLn (s ++ " = " ++ (printEvalExpr v))
-                    replLoop env
-                Nothing -> do
-                    putStrLn ("No such variable, " ++ s)
-                    replLoop env
-            _ -> replLoop env' where
-                env' = evalStatement env line
+        if line == ""
+            then return ()
+        else
+            case words (hist ++ " " ++ line) of
+                ["Show", s] -> case M.lookup (toText s) env of {- show cmd -}
+                    Just v -> do
+                        putStrLn (s ++ " = " ++ (printEvalExpr v))
+                        replLoop env "" 0
+                    Nothing -> do
+                        putStrLn ("No such variable, " ++ s)
+                        replLoop env "" 0
+                _ -> case out of
+                    "" -> replLoop env' "" 0
+                    _ -> do
+                        putStrLn out
+                        replLoop env' "" 0
+                    where
+                        line' = hist ++ " " ++ line
+                        (env', out) = eval env line'
+
 
 repl :: IO ()
-repl = replLoop M.empty
+repl = replLoop M.empty "" 0

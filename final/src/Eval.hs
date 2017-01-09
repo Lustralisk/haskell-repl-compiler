@@ -7,7 +7,6 @@ import Data.Either
 import Data.Attoparsec.Text
 import qualified Data.Map as M
 import Parser
-import Debug.Trace
 
 data Value = BoolValue Bool
            | CharValue Char
@@ -19,6 +18,14 @@ data Value = BoolValue Bool
 type Env = M.Map Text Value
 
 {- Useful util -}
+toText text = pack text
+
+charCount :: Char -> [Char] -> Int
+charCount c s = Data.Text.count (pack [c]) (pack s)
+
+newCount :: Int -> [Char] -> Int
+newCount i s = i + (charCount '(' s) - (charCount ')' s)
+
 isInt :: Value -> Bool
 isInt (DoubleValue d) = ((toEnum (fromEnum d)) :: Double) == d
 isInt _ = False
@@ -52,7 +59,10 @@ evalExprParser env (Function t es) = case M.lookup t env of
         where env'' = evalStatementParser (inject env' env ts es) stat
 evalExprParser env (Let t e1 e2) = evalExprParser env' e2 where
     env' = updateM t (evalExprParser env e1) env
-evalExprParser env (LambdaCall (Lambda t e1) e2) = evalExprParser env (Let t e2 e1)
+{- Not finished yet -}
+{-evalExprParser env (Lambda t e) = (FunctionValue "$$x$$" (Return e) env)
+evalExprParser env (LambdaCall e1 e2) = evalExprParser env (Let t e2 e3)
+    where (Lambda t e3) = evalExprParser env e1-}
 {- Need to check whether e1, e2 are Double -}
 {- Need to due with Inf -}
 evalExprParser env (Add e1 e2) = DoubleValue (v1 + v2)
@@ -155,12 +165,28 @@ evalStatementParser env (Return e) = updateM "$$result$$" (evalExprParser env e)
 --- evalFunctionParser
 -------------------------------------------------------------------------------
 evalFunctionParser :: Env -> Function -> Env
-evalFunctionParser env (Def t ts stat) = do
-    evalStatementParser env' stat where
+evalFunctionParser env (Def t ts stat) = env' where
         env' = updateM t (FunctionValue ts stat env') env
 
-evalExpr :: Env -> Text -> Value
-evalExpr env t = let (Right expr) = (parseOnly exprParser t) in evalExprParser env expr
+
+
+evalExpr :: Env -> [Char] -> Value
+evalExpr env t = let (Right expr) = (parseOnly exprParser (pack t)) in evalExprParser env expr
+
+evalStatement :: Env -> [Char] -> Env
+evalStatement env line = evalStatementParser env statement where
+    (Right statement) = parseOnly statementParser $ pack line
+
+evalFunction :: Env -> [Char] -> Env
+evalFunction env line = evalFunctionParser env function where
+    (Right function) = parseOnly functionParser $ pack line
+
+eval :: Env -> [Char] -> (Env, [Char])
+eval env line = case parseOnly functionParser $ pack line of
+    (Right function) -> (evalFunctionParser env function, "")
+    _ -> case parseOnly statementParser $ pack line of
+        (Right statement) -> (evalStatementParser env statement, "")
+        _ -> (env, printEvalExpr $ evalExpr env line)
 
 {- Need to somewhat refine -}
 printEvalExpr :: Value -> String
@@ -169,13 +195,3 @@ printEvalExpr (DoubleValue d) = show d
 printEvalExpr (CharValue c) = show c
 {- Need to refine -}
 printEvalExpr (ListValue l) = Prelude.concat [printEvalExpr li ++ ", " | li <- l]
-
-evalStatement :: Env -> [Char] -> Env
-evalStatement env line = evalStatementParser env statement where
-    (Right statement) = parseOnly statementParser $ pack line
-
-evalFunction :: Env -> [Char] -> Env
-evalFunction env line = evalFunctionParser env statement where
-    (Right statement) = parseOnly functionParser $ pack line
-
-toText text = pack text
