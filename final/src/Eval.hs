@@ -178,10 +178,15 @@ evalStatement env line = evalStatementParser env statement where
     (Right statement) = parseOnly statementParser $ pack line
 
 evalFunction :: Env -> [Char] -> Env
-evalFunction env line = evalFunctionParser env statement where
-    (Right statement) = parseOnly functionParser $ pack line
+evalFunction env line = evalFunctionParser env function where
+    (Right function) = parseOnly functionParser $ pack line
 
-
+eval :: Env -> [Char] -> (Env, [Char])
+eval env line = case parseOnly functionParser $ pack line of
+    (Right function) -> (evalFunctionParser env function, "")
+    _ -> case parseOnly statementParser $ pack line of
+        (Right statement) -> (evalStatementParser env statement, "")
+        _ -> (env, printEvalExpr $ evalExpr env line)
 
 {- Need to somewhat refine -}
 printEvalExpr :: Value -> String

@@ -49,9 +49,15 @@ replLoop env hist cnt = do
                     Nothing -> do
                         putStrLn ("No such variable, " ++ s)
                         replLoop env "" 0
-                _ -> replLoop env' "" 0 where
+                _ -> case out of
+                    "" -> replLoop env' "" 0
+                    _ -> do
+                        putStrLn out
+                        replLoop env' "" 0
+                    where
                         line' = hist ++ " " ++ line
-                        env' = evalStatement env line'
+                        (env', out) = eval env line'
+
 
 repl :: IO ()
 repl = replLoop M.empty "" 0
