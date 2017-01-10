@@ -19,6 +19,8 @@ library
                      , Eval
                      , Exec
                      , Printer
+                     , CompExec
+                     , Comp
   build-depends:       base >= 4.7 && < 5
                      , text
                      , attoparsec
