@@ -6,6 +6,9 @@ import Data.Text
 import Data.Either
 import Data.Attoparsec.Text
 import qualified Data.Map as M
+-- Note: followings not in dependencies
+import Control.Monad.Except
+import Control.Applicative
 import Parser
 
 data Value = BoolValue Bool
@@ -16,6 +19,59 @@ data Value = BoolValue Bool
            deriving Show
 
 type Env = M.Map Text Value
+
+{- Error Check -}
+
+-- Error Enum
+data EvalError = TypeError String
+               | NotFoundError String
+               | OtherError String
+
+instance Show EvalError where
+    show (TypeError msg) = "TypeError: " ++ msg
+    show (NotFoundError msg) = "VariableNotFoundError: " ++ msg
+    show (OtherError msg) = msg
+
+type EvalMonad = Either EvalError
+
+-- Type Enum
+data ValueType = BoolType | CharType | DoubleType | FunctionType | ListType
+
+-- Error Util
+---- Note: could simplify by (<|>)?
+checkDoubleValueType :: EvalMonad Value -> EvalMonad Value
+checkDoubleValueType (Right (DoubleValue v)) = return (DoubleValue v)
+checkDoubleValueType (Right value) = throwError (TypeError (show value))
+checkDoubleValueType (Left err) = throwError err
+
+checkBoolValueType :: EvalMonad Value -> EvalMonad Value
+checkBoolValueType (Right (BoolValue v)) = return (BoolValue v)
+checkBoolValueType (Right value) = throwError (TypeError (show value))
+checkBoolValueType (Left err) = throwError err
+
+checkCharValueType :: EvalMonad Value -> EvalMonad Value
+checkCharValueType (Right (CharValue v)) = return (CharValue v)
+checkCharValueType (Right value) = throwError (TypeError (show value))
+checkCharValueType (Left err) = throwError err
+
+checkListValueType :: EvalMonad Value -> EvalMonad Value
+checkListValueType (Right (ListValue v)) = case v of
+    [] -> return (ListValue v)
+    [x] -> return (ListValue v)
+    -- todo: type conflict
+    (x:xs) -> return (ListValue v)
+checkListValueType (Right value) = throwError (TypeError (show value))
+checkListValueType (Left err) = throwError err
+
+checkValueType :: ValueType -> EvalMonad Value -> EvalMonad Value
+checkValueType DoubleType = checkDoubleValueType
+checkValueType BoolType = checkBoolValueType
+checkValueType CharType = checkCharValueType
+checkValueType ListType = checkListValueType
+
+handleExprError :: Expr -> EvalError -> EvalMonad Value
+handleExprError expr (TypeError msg) = Left (TypeError (msg ++ "\nIn the expression:\n    " ++ show expr))
+handleExprError _ err = Left err
 
 {- Useful util -}
 toText text = pack text
@@ -30,8 +86,9 @@ isInt :: Value -> Bool
 isInt (DoubleValue d) = ((toEnum (fromEnum d)) :: Double) == d
 isInt _ = False
 
-updateM :: Text -> Value -> Env -> Env
-updateM t v env = M.insert t v (M.delete t env)
+updateM :: Text -> EvalMonad Value -> Env -> Env
+updateM t (Right v) env = M.insert t v (M.delete t env)
+updateM t (Left _) env = env
 
 inject :: Env -> Env -> [Text] -> [Expr] -> Env
 inject env' env ts es = case ts of
@@ -39,40 +96,27 @@ inject env' env ts es = case ts of
     (x:xs) -> inject (updateM x (evalExprParser env y) env') env xs ys where
         (y:ys) = es
 
-{- Error Check -}
-
--- Error Enum
--- data Err = TypeError
--- Type Enum
-data ValueType = BoolType | CharType | DoubleType | FunctionType | ListType
-
-checkValueType :: ValueType -> Either String Value -> Either String Value
-checkValueType DoubleType (Right (DoubleValue v)) = Right (DoubleValue v)
-checkValueType DoubleType (Right _) = Left "Type Error"
-checkValueType DoubleType (Left err) = Left err
-
-
 -------------------------------------------------------------------------------
 --- evalExprParser
 --- Calculate Value of Expr based on given Env
 -------------------------------------------------------------------------------
-evalExprParser :: Env -> Expr -> Either String Value
+evalExprParser :: Env -> Expr -> EvalMonad Value
 {- Need to due with Nothing -}
 evalExprParser env (Variable t) = case M.lookup t env of
-    Nothing -> Left "No such variable"
+    Nothing -> Left (NotFoundError "No such variable")
     Just v -> Right v
 evalExprParser env (Vec t e) = case M.lookup t env of
-    Nothing -> Left "No such "
+    Nothing -> Left (NotFoundError "No such vector")
     Just v -> Right v
-evalExprParser _ (Number e) = DoubleValue e
-evalExprParser _ (CharLit e) = CharValue e
-evalExprParser _ FalseLit = BoolValue False
-evalExprParser _ TrueLit = BoolValue True
-evalExprParser env (Function t es) = case M.lookup t env of
-    Just (FunctionValue ts stat env') -> case M.lookup "$$result$$" env'' of
-        Nothing -> Left ""
-        Just v -> Right v
-        where env'' = evalStatementParser (inject env' env ts es) stat
+evalExprParser _ (Number e) = Right (DoubleValue e)
+evalExprParser _ (CharLit e) = Right (CharValue e)
+evalExprParser _ FalseLit = Right (BoolValue False)
+evalExprParser _ TrueLit = Right (BoolValue True)
+-- evalExprParser env (Function t es) = case M.lookup t env of
+--     Just (FunctionValue ts stat env') -> case M.lookup "$$result$$" env'' of
+--         Nothing -> Left ""
+--         Just v -> Right v
+--         where env'' = evalStatementParser (inject env' env ts es) stat
 evalExprParser env (Let t e1 e2) = evalExprParser env' e2 where
     env' = updateM t (evalExprParser env e1) env
 {- Not finished yet -}
@@ -81,74 +125,101 @@ evalExprParser env (LambdaCall e1 e2) = evalExprParser env (Let t e2 e3)
     where (Lambda t e3) = evalExprParser env e1-}
 {- Need to check whether e1, e2 are Double -}
 {- Need to due with Inf -}
-evalExprParser env (Add e1 e2) = case (evalExprParser env e1, evalExprParser env e2) of
-    (Right (DoubleValue v1), Right (DoubleValue v2)) -> Right (DoubleValue (v1 + v2))
-    (Right (DoubleValue v1), Right _) -> Left "Add: right operand type error"
-    (Right _, Right (DoubleValue v2)) -> Left "Add: left operand type error"
-    (Right _, Right _) -> Left "Add: both operands type error"
-    (Left err, _) -> Left err
-    (_, Left err) -> Left err
 
-evalExprParser env (Add e1 e2) = DoubleValue (v1 + v2)
-    where (DoubleValue v1) = evalExprParser env e1
-          (DoubleValue v2) = evalExprParser env e2
-{- Need to check whether e1, e2 are Double -}
-evalExprParser env (Sub e1 e2) = DoubleValue (v1 - v2)
-    where (DoubleValue v1) = evalExprParser env e1
-          (DoubleValue v2) = evalExprParser env e2
-{- Need to check whether e1, e2 are Double -}
+-- evalExprParser env (Add e1 e2) = case (evalExprParser env e1, evalExprParser env e2) of
+--     (Right (DoubleValue v1), Right (DoubleValue v2)) -> Right (DoubleValue (v1 + v2))
+--     (Right (DoubleValue v1), Right _) -> Left "Add: right operand type error"
+--     (Right _, Right (DoubleValue v2)) -> Left "Add: left operand type error"
+--     (Right _, Right _) -> Left "Add: both operands type error"
+--     (Left err, _) -> Left err
+--     (_, Left err) -> Left err
+
+evalExprParser env expr@(Add e1 e2) = (do
+        (DoubleValue v1) <- checkDoubleValueType (evalExprParser env e1)
+        (DoubleValue v2) <- checkDoubleValueType (evalExprParser env e2)
+        return (DoubleValue (v1 + v2))
+    ) `catchError` handleExprError expr
+
+evalExprParser env expr@(Sub e1 e2) = (do
+        (DoubleValue v1) <- checkDoubleValueType (evalExprParser env e1)
+        (DoubleValue v2) <- checkDoubleValueType (evalExprParser env e2)
+        return (DoubleValue (v1 - v2))
+    ) `catchError` handleExprError expr
+
 {- Need to due with Inf -}
-evalExprParser env (Mul e1 e2) = DoubleValue (v1 * v2)
-    where (DoubleValue v1) = evalExprParser env e1
-          (DoubleValue v2) = evalExprParser env e2
+evalExprParser env expr@(Mul e1 e2) = (do
+        (DoubleValue v1) <- checkDoubleValueType (evalExprParser env e1)
+        (DoubleValue v2) <- checkDoubleValueType (evalExprParser env e2)
+        return (DoubleValue (v1 * v2))
+    ) `catchError` handleExprError expr
 {- Need to check whether e1, e2 are Double -}
 {- Need to due with divid by zero -}
-evalExprParser env (Div e1 e2) = DoubleValue (v1 / v2)
-    where (DoubleValue v1) = evalExprParser env e1
-          (DoubleValue v2) = evalExprParser env e2
+evalExprParser env expr@(Div e1 e2) = (do
+        (DoubleValue v1) <- checkDoubleValueType (evalExprParser env e1)
+        (DoubleValue v2) <- checkDoubleValueType (evalExprParser env e2)
+        return (DoubleValue (v1 / v2))
+    ) `catchError` handleExprError expr
 
 {- Need to check whether e1, e2 are Bool -}
-evalExprParser env (And e1 e2) = BoolValue (v1 && v2)
-    where (BoolValue v1) = evalExprParser env e1
-          (BoolValue v2) = evalExprParser env e2
+evalExprParser env expr@(And e1 e2) = (do
+        (BoolValue v1) <- checkBoolValueType (evalExprParser env e1)
+        (BoolValue v2) <- checkBoolValueType (evalExprParser env e2)
+        return (BoolValue (v1 && v2))
+    ) `catchError` handleExprError expr
 {- Need to check whether e1, e2 are Bool -}
-evalExprParser env (Or e1 e2) = BoolValue (v1 || v2)
-    where (BoolValue v1) = evalExprParser env e1
-          (BoolValue v2) = evalExprParser env e2
+evalExprParser env expr@(Or e1 e2) = (do
+        (BoolValue v1) <- checkBoolValueType (evalExprParser env e1)
+        (BoolValue v2) <- checkBoolValueType (evalExprParser env e2)
+        return (BoolValue (v1 || v2))
+    ) `catchError` handleExprError expr
 {- Need to check whether e1, e2 are Bool -}
-evalExprParser env (Not e) = BoolValue (not n)
-    where (BoolValue n) = evalExprParser env e
+evalExprParser env expr@(Not e) = (do
+        (BoolValue v) <- checkBoolValueType (evalExprParser env e)
+        return (BoolValue (not v))
+    ) `catchError` handleExprError expr
 {- Need to check whether e1, e2 are Double -}
-evalExprParser env (Eq e1 e2) = BoolValue (v1 == v2)
-    where (DoubleValue v1) = evalExprParser env e1
-          (DoubleValue v2) = evalExprParser env e2
+evalExprParser env expr@(Eq e1 e2) = (do
+        (BoolValue v1) <- checkBoolValueType (evalExprParser env e1)
+        (BoolValue v2) <- checkBoolValueType (evalExprParser env e2)
+        return (BoolValue (v1 == v2))
+    ) `catchError` handleExprError expr
 {- Need to check whether e1, e2 are Double -}
-evalExprParser env (Lw e1 e2) = BoolValue (v1 < v2)
-    where (DoubleValue v1) = evalExprParser env e1
-          (DoubleValue v2) = evalExprParser env e2
+evalExprParser env expr@(Lw e1 e2) = (do
+        (BoolValue v1) <- checkBoolValueType (evalExprParser env e1)
+        (BoolValue v2) <- checkBoolValueType (evalExprParser env e2)
+        return (BoolValue (v1 < v2))
+    ) `catchError` handleExprError expr
 {- Need to check whether e1, e2 are Double -}
-evalExprParser env (Le e1 e2) = BoolValue (v1 <= v2)
-    where (DoubleValue v1) = evalExprParser env e1
-          (DoubleValue v2) = evalExprParser env e2
+evalExprParser env expr@(Le e1 e2) = (do
+        (BoolValue v1) <- checkBoolValueType (evalExprParser env e1)
+        (BoolValue v2) <- checkBoolValueType (evalExprParser env e2)
+        return (BoolValue (v1 <= v2))
+    ) `catchError` handleExprError expr
 {- Need to check whether e1, e2 are Double -}
-evalExprParser env (Gr e1 e2) = BoolValue (v1 > v2)
-    where (DoubleValue v1) = evalExprParser env e1
-          (DoubleValue v2) = evalExprParser env e2
+evalExprParser env expr@(Gr e1 e2) = (do
+        (BoolValue v1) <- checkBoolValueType (evalExprParser env e1)
+        (BoolValue v2) <- checkBoolValueType (evalExprParser env e2)
+        return (BoolValue (v1 > v2))
+    ) `catchError` handleExprError expr
 {- Need to check whether e1, e2 are Double -}
-evalExprParser env (Ge e1 e2) = BoolValue (v1 >= v2)
-    where (DoubleValue v1) = evalExprParser env e1
-          (DoubleValue v2) = evalExprParser env e2
+evalExprParser env expr@(Ge e1 e2) = (do
+        (BoolValue v1) <- checkBoolValueType (evalExprParser env e1)
+        (BoolValue v2) <- checkBoolValueType (evalExprParser env e2)
+        return (BoolValue (v1 >= v2))
+    ) `catchError` handleExprError expr
 
-evalExprParser _ Nil = ListValue []
-evalExprParser env (Cons e1 e2) = ListValue (v1:v2)
-    where v1 = evalExprParser env e1
-          (ListValue v2) = evalExprParser env e2
+evalExprParser _ Nil = Right (ListValue [])
+evalExprParser env expr@(Cons e1 e2) = (do
+        v1 <- checkBoolValueType (evalExprParser env e1)
+        (ListValue v2) <- checkBoolValueType (evalExprParser env e2)
+        return (ListValue (v1:v2))
+    ) `catchError` handleExprError expr
 {- Need error detection -}
 evalExprParser env (Car (Cons e _)) = v
     where v = evalExprParser env e
 evalExprParser env (Cdr (Cons _ e)) = v
     where v = evalExprParser env e
-
+{-
 -------------------------------------------------------------------------------
 --- evalStatementParser
 --- Execute Statement based on given Env and may effect on it,
@@ -191,31 +262,35 @@ evalStatementParser env (Return e) = updateM "$$result$$" (evalExprParser env e)
 evalFunctionParser :: Env -> Function -> Env
 evalFunctionParser env (Def t ts stat) = env' where
         env' = updateM t (FunctionValue ts stat env') env
+-}
 
 
-
-evalExpr :: Env -> [Char] -> Value
+evalExpr :: Env -> [Char] -> EvalMonad Value
 evalExpr env t = let (Right expr) = (parseOnly exprParser (pack t)) in evalExprParser env expr
 
-evalStatement :: Env -> [Char] -> Env
-evalStatement env line = evalStatementParser env statement where
-    (Right statement) = parseOnly statementParser $ pack line
-
-evalFunction :: Env -> [Char] -> Env
-evalFunction env line = evalFunctionParser env function where
-    (Right function) = parseOnly functionParser $ pack line
+-- evalStatement :: Env -> [Char] -> Env
+-- evalStatement env line = evalStatementParser env statement where
+--     (Right statement) = parseOnly statementParser $ pack line
+--
+-- evalFunction :: Env -> [Char] -> Env
+-- evalFunction env line = evalFunctionParser env function where
+--     (Right function) = parseOnly functionParser $ pack line
+--
+-- eval :: Env -> [Char] -> (Env, [Char])
+-- eval env line = case parseOnly functionParser $ pack line of
+--     (Right function) -> (evalFunctionParser env function, "")
+--     _ -> case parseOnly statementParser $ pack line of
+--         (Right statement) -> (evalStatementParser env statement, "")
+--         _ -> (env, printEvalExpr $ evalExpr env line)
 
 eval :: Env -> [Char] -> (Env, [Char])
-eval env line = case parseOnly functionParser $ pack line of
-    (Right function) -> (evalFunctionParser env function, "")
-    _ -> case parseOnly statementParser $ pack line of
-        (Right statement) -> (evalStatementParser env statement, "")
-        _ -> (env, printEvalExpr $ evalExpr env line)
+eval env line = (env, printEvalExpr $ evalExpr env line)
 
 {- Need to somewhat refine -}
-printEvalExpr :: Value -> String
-printEvalExpr (BoolValue b) = show b
-printEvalExpr (DoubleValue d) = show d
-printEvalExpr (CharValue c) = show c
+printEvalExpr :: EvalMonad Value -> String
+printEvalExpr (Right (BoolValue b)) = show b
+printEvalExpr (Right (DoubleValue d)) = show d
+printEvalExpr (Right (CharValue c)) = show c
 {- Need to refine -}
-printEvalExpr (ListValue l) = Prelude.concat [printEvalExpr li ++ ", " | li <- l]
+printEvalExpr (Right (ListValue l)) = Prelude.concat [printEvalExpr (Right li) ++ ", " | li <- l]
+printEvalExpr (Left err) = show err

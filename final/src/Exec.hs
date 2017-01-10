@@ -23,7 +23,7 @@ mainFunc = do
 -}
 
 -------------------------------------------------------------------------------
---- REPL loop 
+--- REPL loop
 --- REPL commands:
 ---   [Expr/Statement/Function]
 ---   Show [Variable]
@@ -44,7 +44,7 @@ replLoop env hist cnt = do
             case words (hist ++ " " ++ line) of
                 ["Show", s] -> case M.lookup (toText s) env of {- show cmd -}
                     Just v -> do
-                        putStrLn (s ++ " = " ++ (printEvalExpr v))
+                        putStrLn (s ++ " = " ++ (printEvalExpr $ Right v))
                         replLoop env "" 0
                     Nothing -> do
                         putStrLn ("No such variable, " ++ s)
