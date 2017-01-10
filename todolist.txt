@@ -90,6 +90,7 @@ https://github.com/erikd/language-javascript/tree/new-ast/src/Language/JavaScrip
 05. add Show statement to REPL
 06. lazy evaluation for nested function call
 07. smart REPL
+08. GNU emacs coding style for printer
 
 ====================================================
     ______                                __

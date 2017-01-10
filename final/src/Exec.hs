@@ -10,6 +10,8 @@ import qualified Data.Map as M
 import System.IO
 import Parser
 import Eval
+import Printer
+import Debug.Trace
 
 {-
 mainFunc :: IO ()
@@ -22,11 +24,22 @@ mainFunc = do
     mainFunc
 -}
 
+prettyPrinterLoop :: [[Char]] -> IO ()
+prettyPrinterLoop ts = case ts of
+    [] -> return ()
+    (x:xs) -> do
+        putStrLn x
+        prettyPrinterLoop xs
+
+prettyPrinter :: [Char] -> IO ()
+prettyPrinter s = prettyPrinterLoop $ splitLn (prettyPrint s)
+
 -------------------------------------------------------------------------------
 --- REPL loop
 --- REPL commands:
 ---   [Expr/Statement/Function]
 ---   Show [Variable]
+---   Pretty [Expr/Statement/Function]
 ---   Exec [Expr]
 ---   Define [Function]
 -------------------------------------------------------------------------------
@@ -41,14 +54,17 @@ replLoop env hist cnt = do
         if line == ""
             then return ()
         else
-            case words (hist ++ " " ++ line) of
-                ["Show", s] -> case M.lookup (toText s) env of {- show cmd -}
+            case trace (hist ++ " " ++ line) (hist ++ " " ++ line) of
+                (' ':'s':'h':'o':'w':' ':s) -> case M.lookup (toText s) env of {- show cmd -}
                     Just v -> do
                         putStrLn (s ++ " = " ++ (printEvalExpr $ Right v))
                         replLoop env "" 0
                     Nothing -> do
                         putStrLn ("No such variable, " ++ s)
                         replLoop env "" 0
+                (' ':'p':'r':'e':'t':'t':'y':' ':s) -> do
+                    prettyPrinter s
+                    replLoop env "" 0
                 _ -> case out of
                     "" -> replLoop env' "" 0
                     _ -> do

@@ -75,6 +75,8 @@ handleExprError _ err = Left err
 
 {- Useful util -}
 toText text = pack text
+splitLn :: Text -> [[Char]]
+splitLn = (Prelude.map unpack) . (splitOn "\r\n")
 
 charCount :: Char -> [Char] -> Int
 charCount c s = Data.Text.count (pack [c]) (pack s)
@@ -266,6 +268,7 @@ evalFunctionParser env (Def t ts stat) = env' where
         env' = updateM t (Right (FunctionValue ts stat env')) env
 
 
+-- All needs error detection
 evalExpr :: Env -> [Char] -> EvalMonad Value
 evalExpr env t = let (Right expr) = (parseOnly exprParser (pack t)) in evalExprParser env expr
 
