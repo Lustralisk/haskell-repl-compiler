@@ -75,7 +75,7 @@ data Expr
     | Let Text Expr Expr
     | Lambda Text Expr
     | LambdaCall Expr Expr
-    deriving Show
+    deriving (Show, Eq)
 
 exprParser :: Parser Expr
 exprParser = falseParser <|> trueParser <|> notParser <|> andParser <|> orParser <|>

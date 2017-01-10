@@ -39,23 +39,39 @@ inject env' env ts es = case ts of
     (x:xs) -> inject (updateM x (evalExprParser env y) env') env xs ys where
         (y:ys) = es
 
+{- Error Check -}
+
+-- Error Enum
+-- data Err = TypeError
+-- Type Enum
+data ValueType = BoolType | CharType | DoubleType | FunctionType | ListType
+
+checkValueType :: ValueType -> Either String Value -> Either String Value
+checkValueType DoubleType (Right (DoubleValue v)) = Right (DoubleValue v)
+checkValueType DoubleType (Right _) = Left "Type Error"
+checkValueType DoubleType (Left err) = Left err
+
+
 -------------------------------------------------------------------------------
 --- evalExprParser
 --- Calculate Value of Expr based on given Env
 -------------------------------------------------------------------------------
-evalExprParser :: Env -> Expr -> Value
+evalExprParser :: Env -> Expr -> Either String Value
 {- Need to due with Nothing -}
 evalExprParser env (Variable t) = case M.lookup t env of
-    Just v -> v
+    Nothing -> Left "No such variable"
+    Just v -> Right v
 evalExprParser env (Vec t e) = case M.lookup t env of
-    Just v -> v
+    Nothing -> Left "No such "
+    Just v -> Right v
 evalExprParser _ (Number e) = DoubleValue e
 evalExprParser _ (CharLit e) = CharValue e
 evalExprParser _ FalseLit = BoolValue False
 evalExprParser _ TrueLit = BoolValue True
 evalExprParser env (Function t es) = case M.lookup t env of
     Just (FunctionValue ts stat env') -> case M.lookup "$$result$$" env'' of
-        Just v -> v
+        Nothing -> Left ""
+        Just v -> Right v
         where env'' = evalStatementParser (inject env' env ts es) stat
 evalExprParser env (Let t e1 e2) = evalExprParser env' e2 where
     env' = updateM t (evalExprParser env e1) env
@@ -65,6 +81,14 @@ evalExprParser env (LambdaCall e1 e2) = evalExprParser env (Let t e2 e3)
     where (Lambda t e3) = evalExprParser env e1-}
 {- Need to check whether e1, e2 are Double -}
 {- Need to due with Inf -}
+evalExprParser env (Add e1 e2) = case (evalExprParser env e1, evalExprParser env e2) of
+    (Right (DoubleValue v1), Right (DoubleValue v2)) -> Right (DoubleValue (v1 + v2))
+    (Right (DoubleValue v1), Right _) -> Left "Add: right operand type error"
+    (Right _, Right (DoubleValue v2)) -> Left "Add: left operand type error"
+    (Right _, Right _) -> Left "Add: both operands type error"
+    (Left err, _) -> Left err
+    (_, Left err) -> Left err
+
 evalExprParser env (Add e1 e2) = DoubleValue (v1 + v2)
     where (DoubleValue v1) = evalExprParser env e1
           (DoubleValue v2) = evalExprParser env e2
