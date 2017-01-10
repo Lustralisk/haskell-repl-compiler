@@ -19,6 +19,8 @@ type Env = M.Map Text Value
 
 {- Useful util -}
 toText text = pack text
+splitLn :: Text -> [[Char]]
+splitLn = (Prelude.map unpack) . (splitOn "\r\n")
 
 charCount :: Char -> [Char] -> Int
 charCount c s = Data.Text.count (pack [c]) (pack s)

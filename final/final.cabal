@@ -18,6 +18,7 @@ library
   exposed-modules:     Parser
                      , Eval
                      , Exec
+                     , Printer
   build-depends:       base >= 4.7 && < 5
                      , text
                      , attoparsec
