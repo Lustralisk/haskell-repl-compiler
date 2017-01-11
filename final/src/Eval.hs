@@ -74,15 +74,16 @@ handleExprError expr (TypeError msg) = Left (TypeError (msg ++ "\nIn the express
 handleExprError _ err = Left err
 
 {- Useful util -}
-toText text = pack text
-splitLn :: Text -> [[Char]]
-splitLn = (Prelude.map unpack) . (splitOn "\r\n")
+toText = pack
 
-charCount :: Char -> [Char] -> Int
+splitLn :: Text -> [String]
+splitLn = Prelude.map unpack . splitOn "\r\n"
+
+charCount :: Char -> String -> Int
 charCount c s = Data.Text.count (pack [c]) (pack s)
 
-newCount :: Int -> [Char] -> Int
-newCount i s = i + (charCount '(' s) - (charCount ')' s)
+newCount :: Int -> String -> Int
+newCount i s = i + charCount '(' s - charCount ')' s
 
 isInt :: Value -> Bool
 isInt (DoubleValue d) = ((toEnum (fromEnum d)) :: Double) == d
@@ -269,18 +270,18 @@ evalFunctionParser env (Def t ts stat) = env' where
 
 
 -- All needs error detection
-evalExpr :: Env -> [Char] -> EvalMonad Value
-evalExpr env t = let (Right expr) = (parseOnly exprParser (pack t)) in evalExprParser env expr
+evalExpr :: Env -> String -> EvalMonad Value
+evalExpr env t = let (Right expr) = parseOnly exprParser (pack t) in evalExprParser env expr
 
-evalStatement :: Env -> [Char] -> Env
+evalStatement :: Env -> String -> Env
 evalStatement env line = evalStatementParser env statement where
     (Right statement) = parseOnly statementParser $ pack line
 
-evalFunction :: Env -> [Char] -> Env
+evalFunction :: Env -> String -> Env
 evalFunction env line = evalFunctionParser env function where
     (Right function) = parseOnly functionParser $ pack line
 
-eval :: Env -> [Char] -> (Env, [Char])
+eval :: Env -> String -> (Env, String)
 eval env line = case parseOnly functionParser $ pack line of
     (Right function) -> (evalFunctionParser env function, "")
     _ -> case parseOnly statementParser $ pack line of

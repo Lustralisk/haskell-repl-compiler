@@ -11,10 +11,10 @@ import Data.Attoparsec.Text
 {- Divide utility -}
 (<+>) :: Monad m => m t -> m t -> m [t]
 (<+>) = liftM2 (\a b -> [a, b])
-(<:>) :: Monad m => m Char -> m [Char] -> m [Char]
-(<:>) = liftM2 (\a b -> a:b)
-(<++>) :: Monad m => m [Char] -> m [Char] -> m [Char]
-(<++>) = liftM2 (\a b -> a ++ b)
+(<:>) :: Monad m => m Char -> m String -> m String
+(<:>) = liftM2 (:)
+(<++>) :: Monad m => m String -> m String -> m String
+(<++>) = liftM2 (++)
 
 digits = many1 digit
 
@@ -23,7 +23,7 @@ lexeme p = do
     skipSpace
     p
 
-testParser :: Parser Expr -> [Char] -> Either String Expr
+testParser :: Parser Expr -> String -> Either String Expr
 testParser p s = parseOnly p $ pack s
 
 binParser :: Text -> (Expr -> Expr -> Expr) -> Parser Expr
@@ -43,7 +43,7 @@ uniParser token op = do
     lexeme $ char ')'
     return (op expr)
 
-variNameParser :: Parser [Char]
+variNameParser :: Parser String
 variNameParser = lexeme $ many1 $ choice [char c | c <- ['a'..'z']]
 
 {- Divide declare -}
@@ -95,7 +95,7 @@ trueParser = lexeme $ string "True" $> TrueLit
 floatParser :: Parser Expr
 floatParser = do
     d <- lexeme $ digits <++> (char '.' <:> digits) <|> digits
-    return (Number $ read $ d)
+    return (Number $ read d)
 
 notParser :: Parser Expr
 notParser = uniParser "not" Not
@@ -154,8 +154,7 @@ stringParser :: Parser Expr
 stringParser = do
     s <- lexeme $ string "''" *> manyTill anyChar (string "''")
     return $ construct s
-        where construct [] = Nil
-              construct (x:xs) = Cons (CharLit x) (construct xs)
+        where construct = Prelude.foldr (Cons . CharLit) Nil
 
 vectorParser :: Parser Expr
 vectorParser = do
