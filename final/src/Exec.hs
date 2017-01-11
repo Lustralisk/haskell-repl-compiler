@@ -9,7 +9,7 @@ import Control.Monad
 import qualified Data.Map as M
 import System.IO
 import Parser
-import Eval
+import EvalT
 import Printer
 import Debug.Trace
 

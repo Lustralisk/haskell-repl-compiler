@@ -17,6 +17,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     Parser
                      , Eval
+                     , EvalT
                      , Exec
                      , Printer
                      , CompExec
