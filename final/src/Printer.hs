@@ -107,6 +107,10 @@ printStatement offset style (SetVector t e1 e2) = (offset, style) >>> ["(vector-
 printStatement offset style (Return e) = (offset, style) >>> ["(return ", c, ")"] where
     c = printExpr (offset + 8) False e
 
+printFunction :: Int -> Bool -> Function -> Text
+printFunction offset style (Def t ts ss) = (offset, style) >>> ["(define ", t, " (", " " `intercalate` ts, ")\r\n", bs] where
+    bs = printStatement (offset + 2) True ss
+
 prettyPrint :: [Char] -> Text
 prettyPrint line = case parseOnly statementParser $ pack line of
     (Right statement) -> printStatement 0 True statement
