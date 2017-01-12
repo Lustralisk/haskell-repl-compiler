@@ -75,6 +75,10 @@ inject env t e ts es = case (ts, es) of
         insert x v
         inject env t e xs ys
 
+updateM :: Text -> [Text] -> Statement -> Env -> Env
+updateM t ts stmt env = env' where
+    env' = M.insert t (FunctionValue ts stmt env') env
+
 isInt :: Double -> Bool
 isInt d = ((toEnum (fromEnum d)) :: Double) == d
 
@@ -219,8 +223,7 @@ evalStatementParser (Return e) = do
 evalFunctionParser :: Function -> Eval ()
 evalFunctionParser (Def t ts stmt) = do
     env <- get
-    put $ let (Right _, env') = runState (runExceptT $ insert t (FunctionValue ts stmt env')) env in env'
-
+    put $ updateM t ts stmt env
 
 evalExpr :: String -> Eval Value
 evalExpr t = case parseOnly exprParser $ pack t of

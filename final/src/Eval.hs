@@ -263,7 +263,6 @@ evalFunctionParser :: Env -> Function -> Env
 evalFunctionParser env (Def t ts stat) = env' where
         env' = updateM t (Right (FunctionValue ts stat env')) env
 
-
 -- All needs error detection
 evalExpr :: Env -> String -> EvalMonad Value
 evalExpr env t = let (Right expr) = parseOnly exprParser (pack t) in evalExprParser env expr
