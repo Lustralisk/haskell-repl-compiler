@@ -6,6 +6,7 @@ import Data.Text
 import Data.Either
 import Data.Attoparsec.Text
 import qualified Data.Map as M
+import Debug.Trace
 -- Note: followings not in dependencies
 import Control.Monad.Except
 import Control.Applicative
@@ -27,8 +28,9 @@ type Env = M.Map Text Value
 data Errors = ParseError Text
            | TypeError Value Expr
            | ConditionError Value Expr
-           | NotFoundError Text
+           | NotFoundError Text Expr
            | ValueError Value Expr
+           | FuncTypeError Text Expr
            | DividedByZeroError Expr
            | OutOfIndexError Value Expr
            | OtherError Text
@@ -36,8 +38,9 @@ data Errors = ParseError Text
 instance Show Errors where
     show (ParseError msg) = "ParseError: " ++ unpack msg
     show (TypeError value expr) = "TypeError: " ++ show value ++ "\nIn the expression: " ++ show expr
-    show (NotFoundError var) = "NotFoundError: " ++ unpack var
+    show (NotFoundError var expr) = "NotFoundError: " ++ unpack var ++ "\nIn the expression: " ++ show expr
     show (ValueError value expr) = "ValueError: " ++ show value ++ "\nIn the expression: " ++ show expr
+    show (FuncTypeError t expr) = "FunctionTypeError: " ++ unpack t ++ "\nIn the expression: " ++ show expr
     show (DividedByZeroError expr) = "DividedByZeroError: " ++ show expr
     show (OutOfIndexError value expr) = "OutOfIndexError: " ++ show value ++ "\nIn the expression: " ++ show expr
     show (OtherError msg) = unpack msg
@@ -59,6 +62,19 @@ search t = state $ \env -> case M.lookup t env of
     Nothing -> (Undefined, env)
     Just v -> (v, env)
 
+inject :: Env -> Text -> Expr -> [Text] -> [Expr] -> Eval ()
+inject env t e ts es = case (ts, es) of
+    ([], []) -> return ()
+    (x:xs, []) -> throwError $ FuncTypeError t e
+    ([], y:ys) -> throwError $ FuncTypeError t e
+    (x:xs, y:ys) -> do
+        fenv <- get
+        put env
+        v <- evalExprParser y
+        put fenv
+        insert x v
+        inject env t e xs ys
+
 isInt :: Double -> Bool
 isInt d = ((toEnum (fromEnum d)) :: Double) == d
 
@@ -74,32 +90,44 @@ charCount c s = Data.Text.count (pack [c]) (pack s)
 newCount :: Int -> String -> Int
 newCount i s = i + charCount '(' s - charCount ')' s
 
-inject :: Env -> Env -> [Text] -> [Expr] -> Env
-inject env' env ts es = case ts of
-    [] -> env'
-    (x:xs) -> inject (updateM x (evalExprParser env y) env') env xs ys where
-        (y:ys) = es
-
 -- runEval env ev = runState (runExceptT ev) env
 
 evalExprParser :: Expr -> Eval Value
-evalExprParser (Variable t) = do
+evalExprParser expr@(Variable t) = do
     v <- search t
     case v of
-        Undefined -> throwError $ NotFoundError t
+        Undefined -> throwError $ NotFoundError t expr
         _ -> return v
--- todolist:
--- evalExprParser (Vec t e) = do
---     v <- search t
---     case v of
-evalExprParser (Function t es) = do
+evalExprParser expr@(Vec t e) = do
     v <- search t
     case v of
-        (FunctionValue ts stat env') -> do
+        Undefined -> throwError $ NotFoundError t expr
+        _ -> return v
+evalExprParser expr@(Function t es) = do
+    v <- search t
+    case v of
+        (FunctionValue ts stmt fenv) -> do
+            env <- get
+            xxx <- search "x"
+            put fenv
+            inject env t expr ts es
+            evalStatementParser stmt
             v' <- search "$$result$$"
+            put env
             case v' of
-                Undefined -> 
-        _ -> throwError $ NotFoundError t
+                Undefined -> throwError $ NotFoundError ("Variable " `append` t) expr
+                _ -> return v'
+        _ -> throwError $ NotFoundError ("Function " `append` t) expr
+evalExprParser (Let t e1 e2) = do
+    env <- get
+    v1 <- evalExprParser e1
+    insert t v1
+    v2 <- evalExprParser e2
+    put env
+    return v2
+evalExprParser (Lambda t e) = do
+    env <- get
+    return $ FunctionValue [t] (Return e) env
 evalExprParser (Number n) = return $ DoubleValue n
 evalExprParser TrueLit = return $ BoolValue True
 evalExprParser expr@(Add e1 e2) = do
@@ -107,6 +135,27 @@ evalExprParser expr@(Add e1 e2) = do
     r2 <- evalExprParser e2
     case (r1, r2) of
         (DoubleValue v1, DoubleValue v2) -> return $ DoubleValue (v1 + v2)
+        (DoubleValue _, _) -> throwError $ TypeError r2 expr
+        _ -> throwError $ TypeError r1 expr
+evalExprParser expr@(Sub e1 e2) = do
+    r1 <- evalExprParser e1
+    r2 <- evalExprParser e2
+    case (r1, r2) of
+        (DoubleValue v1, DoubleValue v2) -> return $ DoubleValue (v1 - v2)
+        (DoubleValue _, _) -> throwError $ TypeError r2 expr
+        _ -> throwError $ TypeError r1 expr
+evalExprParser expr@(Lw e1 e2) = do
+    r1 <- evalExprParser e1
+    r2 <- evalExprParser e2
+    case (r1, r2) of
+        (DoubleValue v1, DoubleValue v2) -> return $ BoolValue (v1 < v2)
+        (DoubleValue _, _) -> throwError $ TypeError r2 expr
+        _ -> throwError $ TypeError r1 expr
+evalExprParser expr@(Gr e1 e2) = do
+    r1 <- evalExprParser e1
+    r2 <- evalExprParser e2
+    case (r1, r2) of
+        (DoubleValue v1, DoubleValue v2) -> return $ BoolValue (v1 > v2)
         (DoubleValue _, _) -> throwError $ TypeError r2 expr
         _ -> throwError $ TypeError r1 expr
 evalExprParser expr@(Div e1 e2) = do
@@ -117,7 +166,6 @@ evalExprParser expr@(Div e1 e2) = do
         (DoubleValue v1, DoubleValue v2) -> return $ DoubleValue (v1 / v2)
         (DoubleValue _, _) -> throwError $ TypeError r2 expr
         _ -> throwError $ TypeError r1 expr
-
 
 evalStatementParser :: Statement -> Eval ()
 evalStatementParser (StatementList []) = return ()
@@ -162,7 +210,7 @@ evalStatementParser stmt@(SetVector t e1 e2) = do
                     then let i = fromEnum i' in insert t (ListValue (Prelude.take i v ++ [v'] ++ Prelude.drop (i + 1) v))
                     else throwError $ ValueError v' e2
                 _ -> throwError $ TypeError value e1
-        _ -> throwError $ NotFoundError t
+        _ -> throwError $ NotFoundError t (Variable t)
 evalStatementParser (Return e) = do
     v <- evalExprParser e
     insert "$$result$$" v
@@ -171,7 +219,7 @@ evalStatementParser (Return e) = do
 evalFunctionParser :: Function -> Eval ()
 evalFunctionParser (Def t ts stmt) = do
     env <- get
-    insert t (FunctionValue ts stmt env)
+    put $ let (Right _, env') = runState (runExceptT $ insert t (FunctionValue ts stmt env')) env in env'
 
 
 evalExpr :: String -> Eval Value
@@ -197,9 +245,12 @@ eval line = case parseOnly functionParser $ pack line of
         (Right statement) -> (\() -> "") `liftM` evalStatementParser statement
         _ -> printEvalExpr $ evalExpr line
 
+runEval line env = runState (runExceptT $ eval line) env
+
 printEvalExpr :: Eval Value -> Eval String
 printEvalExpr = liftM showEvalExpr where
     showEvalExpr (BoolValue b) = show b
     showEvalExpr (DoubleValue d) = show d
     showEvalExpr (CharValue c) = show c
+    showEvalExpr (FunctionValue [t] s e) = (show [t]) ++ " " ++ (show s) ++ " " ++ (show e)
     showEvalExpr (ListValue l) = Prelude.concat [showEvalExpr li ++ ", " | li <- l]
