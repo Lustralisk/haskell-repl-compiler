@@ -82,7 +82,7 @@ exprParser = falseParser <|> trueParser <|> notParser <|> andParser <|> orParser
              floatParser <|> addParser <|> subParser <|> mulParser <|> divParser <|>
              eqParser <|> lwParser <|> leParser <|> grParser <|> geParser <|>
              charParser <|> stringParser <|> consParser <|> carParser <|> cdrParser <|> nilParser <|>
-             letParser <|> lambdaParser <|> lambdaCallParser <|>
+             letParser <|> lambdaParser <|>
              vectorParser <|> functionCallParser <|> variableParser
 
 falseParser :: Parser Expr
@@ -196,15 +196,6 @@ lambdaParser = do
     expr <- exprParser
     lexeme $ char ')'
     return (Lambda (pack vari) expr)
-
-lambdaCallParser :: Parser Expr
-lambdaCallParser = do
-    lexeme $ char '('
-    lexeme $ string "apply"
-    expr1 <- exprParser
-    expr2 <- exprParser
-    lexeme $ char ')'
-    return (LambdaCall expr1 expr2)
 
 data Statement
     = StatementList [Statement]

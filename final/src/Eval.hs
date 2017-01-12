@@ -122,12 +122,7 @@ evalExprParser env (Function t es) = case M.lookup t env of
         where env'' = evalStatementParser (inject env' env ts es) stat
 evalExprParser env (Let t e1 e2) = evalExprParser env' e2 where
     env' = updateM t (evalExprParser env e1) env
-{- Not finished yet -}
-{-evalExprParser env (Lambda t e) = (FunctionValue "$$x$$" (Return e) env)
-evalExprParser env (LambdaCall e1 e2) = evalExprParser env (Let t e2 e3)
-    where (Lambda t e3) = evalExprParser env e1-}
-{- Need to check whether e1, e2 are Double -}
-{- Need to due with Inf -}
+evalExprParser env (Lambda t e) = return $ FunctionValue [t] (Return e) env
 
 -- !!! Abandon:
 -- evalExprParser env (Add e1 e2) = case (evalExprParser env e1, evalExprParser env e2) of
@@ -293,6 +288,7 @@ printEvalExpr :: EvalMonad Value -> String
 printEvalExpr (Right (BoolValue b)) = show b
 printEvalExpr (Right (DoubleValue d)) = show d
 printEvalExpr (Right (CharValue c)) = show c
+printEvalExpr (Right (FunctionValue [t] s e)) = (show [t]) ++ " " ++ (show s) ++ " " ++ (show e)
 {- Need to refine -}
 printEvalExpr (Right (ListValue l)) = Prelude.concat [printEvalExpr (Right li) ++ ", " | li <- l]
 printEvalExpr (Left err) = show err
