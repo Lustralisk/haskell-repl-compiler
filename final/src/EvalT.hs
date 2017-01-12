@@ -132,7 +132,7 @@ evalExprParser (Lambda t e) = do
     env <- get
     return $ FunctionValue [t] (Return e) env
 evalExprParser (Number n) = return $ DoubleValue n
-evalExprParser TrueLit = return $ BoolValue True
+evalExprParser (BoolLit True) = return $ BoolValue True
 evalExprParser expr@(Add e1 e2) = do
     r1 <- evalExprParser e1
     r2 <- evalExprParser e2

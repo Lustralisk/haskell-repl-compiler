@@ -113,8 +113,7 @@ evalExprParser env (Vec t e) = case M.lookup t env of
     Just v -> Right v
 evalExprParser _ (Number e) = Right (DoubleValue e)
 evalExprParser _ (CharLit e) = Right (CharValue e)
-evalExprParser _ FalseLit = Right (BoolValue False)
-evalExprParser _ TrueLit = Right (BoolValue True)
+evalExprParser _ (BoolLit e) = Right (BoolValue e)
 evalExprParser env (Function t es) = case M.lookup t env of
     Just (FunctionValue ts stat env') -> case M.lookup "$$result$$" env'' of
         Nothing -> Left (NotFoundError "No such function")
