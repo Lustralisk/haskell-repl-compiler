@@ -21,7 +21,7 @@ data Value = BoolValue Bool
            | FunctionValue [Text] Statement Env
            | ListValue [Value]
            | Undefined
-           deriving Show
+           deriving (Show, Eq)
 
 type Env = M.Map Text Value
 
@@ -133,6 +133,7 @@ evalExprParser (Lambda t e) = do
     return $ FunctionValue [t] (Return e) env
 evalExprParser (Number n) = return $ DoubleValue n
 evalExprParser (BoolLit b) = return $ BoolValue b
+evalExprParser (CharLit c) = return $ CharValue c
 evalExprParser expr@(Add e1 e2) = do
     r1 <- evalExprParser e1
     r2 <- evalExprParser e2
@@ -145,6 +146,13 @@ evalExprParser expr@(Sub e1 e2) = do
     r2 <- evalExprParser e2
     case (r1, r2) of
         (DoubleValue v1, DoubleValue v2) -> return $ DoubleValue (v1 - v2)
+        (DoubleValue _, _) -> throwError $ TypeError r2 expr
+        _ -> throwError $ TypeError r1 expr
+evalExprParser expr@(Mul e1 e2) = do
+    r1 <- evalExprParser e1
+    r2 <- evalExprParser e2
+    case (r1, r2) of
+        (DoubleValue v1, DoubleValue v2) -> return $ DoubleValue (v1 * v2)
         (DoubleValue _, _) -> throwError $ TypeError r2 expr
         _ -> throwError $ TypeError r1 expr
 evalExprParser expr@(Div e1 e2) = do
@@ -174,6 +182,13 @@ evalExprParser expr@(Not e) = do
     case r of
         (BoolValue v) -> return $ BoolValue (not v)
         _ -> throwError $ TypeError r expr
+evalExprParser expr@(Eq e1 e2) = do
+    r1 <- evalExprParser e1
+    r2 <- evalExprParser e2
+    case (r1, r2) of
+        (DoubleValue v1, DoubleValue v2) -> return $ BoolValue (v1 == v2)
+        (DoubleValue _, _) -> throwError $ TypeError r2 expr
+        _ -> throwError $ TypeError r1 expr
 evalExprParser expr@(Lw e1 e2) = do
     r1 <- evalExprParser e1
     r2 <- evalExprParser e2
@@ -181,11 +196,25 @@ evalExprParser expr@(Lw e1 e2) = do
         (DoubleValue v1, DoubleValue v2) -> return $ BoolValue (v1 < v2)
         (DoubleValue _, _) -> throwError $ TypeError r2 expr
         _ -> throwError $ TypeError r1 expr
+evalExprParser expr@(Le e1 e2) = do
+    r1 <- evalExprParser e1
+    r2 <- evalExprParser e2
+    case (r1, r2) of
+        (DoubleValue v1, DoubleValue v2) -> return $ BoolValue (v1 <= v2)
+        (DoubleValue _, _) -> throwError $ TypeError r2 expr
+        _ -> throwError $ TypeError r1 expr
 evalExprParser expr@(Gr e1 e2) = do
     r1 <- evalExprParser e1
     r2 <- evalExprParser e2
     case (r1, r2) of
         (DoubleValue v1, DoubleValue v2) -> return $ BoolValue (v1 > v2)
+        (DoubleValue _, _) -> throwError $ TypeError r2 expr
+        _ -> throwError $ TypeError r1 expr
+evalExprParser expr@(Ge e1 e2) = do
+    r1 <- evalExprParser e1
+    r2 <- evalExprParser e2
+    case (r1, r2) of
+        (DoubleValue v1, DoubleValue v2) -> return $ BoolValue (v1 >= v2)
         (DoubleValue _, _) -> throwError $ TypeError r2 expr
         _ -> throwError $ TypeError r1 expr
 
@@ -265,10 +294,20 @@ eval line = case parseOnly functionParser $ pack line of
         (Right statement) -> (\() -> "") `liftM` evalStatementParser statement
         _ -> printEvalExpr $ evalExpr line
 
-runEvalExpr line env = value where
-    (Right value, _) = runState (runExceptT $ evalExpr line) env
-runEval line env = value where
-    (Right value, _) = runState (runExceptT $ eval line) env
+runEvalExpr :: String -> Either Errors Value
+runEvalExpr line = case runState (runExceptT $ evalExpr line) M.empty of
+    (Right a, _) -> Right a
+    (Left err, _) -> Left err
+
+runEvalStmt :: String -> Either Errors String
+runEvalStmt line = case runState (runExceptT $ evalStatement line) M.empty of
+    (Right a, _) -> Right $ show a
+    (Left err, _) -> Left err
+
+runEval :: String -> String
+runEval line = case runState (runExceptT $ eval line) M.empty of
+    (Right a, _) -> a
+    (Left err, _) -> show err
 
 printEvalExpr :: Eval Value -> Eval String
 printEvalExpr = liftM showEvalExpr where

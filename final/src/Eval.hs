@@ -16,7 +16,7 @@ data Value = BoolValue Bool
            | DoubleValue Double
            | FunctionValue [Text] Statement Env
            | ListValue [Value]
-           deriving Show
+           deriving (Show, Eq)
 
 type Env = M.Map Text Value
 

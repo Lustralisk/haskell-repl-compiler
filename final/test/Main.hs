@@ -11,4 +11,6 @@ tests  = evalTests
         ++ parserTests
 
 main :: IO ()
-main = mapM_ (\(s,a) -> printf "%-25s: " s >> a) tests
+main = do
+    putStrLn ""
+    mapM_ (\(s,a) -> printf "%-30s:  " s >> a) tests

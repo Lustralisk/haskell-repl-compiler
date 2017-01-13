@@ -46,6 +46,11 @@ uniParser token op = do
 variNameParser :: Parser String
 variNameParser = lexeme $ many1 $ choice [char c | c <- ['a'..'z']]
 
+{- show util -}
+
+showBracket :: String -> String
+showBracket a = "(" ++ a ++ ")"
+
 {- Divide declare -}
 
 data Expr
@@ -74,7 +79,35 @@ data Expr
     | Let Text Expr Expr
     | Lambda Text Expr
     | LambdaCall Expr Expr
-    deriving (Show, Eq)
+    deriving (Eq)
+
+instance Show Expr where
+    show (BoolLit b) = show b
+    show (Not e) = showBracket $ "not " ++ show e
+    show (And e1 e2) = showBracket $ "and " ++ show e1 ++ " " ++ show e2
+    show (Or e1 e2) = showBracket $ "or " ++ show e1 ++ " " ++ show e2
+    show (Number n) = show n
+    show (Add e1 e2) = showBracket $ "+ " ++ show e1 ++ " " ++ show e2
+    show (Sub e1 e2) = showBracket $ "- " ++ show e1 ++ " " ++ show e2
+    show (Mul e1 e2) = showBracket $ "* " ++ show e1 ++ " " ++ show e2
+    show (Div e1 e2) = showBracket $ "/ " ++ show e1 ++ " " ++ show e2
+    show (Eq e1 e2) = showBracket $ "= " ++ show e1 ++ " " ++ show e2
+    show (Lw e1 e2) = showBracket $ "< " ++ show e1 ++ " " ++ show e2
+    show (Le e1 e2) = showBracket $ "<= " ++ show e1 ++ " " ++ show e2
+    show (Gr e1 e2) = showBracket $ "> " ++ show e1 ++ " " ++ show e2
+    show (Ge e1 e2) = showBracket $ ">= " ++ show e1 ++ " " ++ show e2
+    show Nil = "Nil"
+    show (Car e) = showBracket $ "car " ++ show e
+    show (Cdr e) = showBracket $ "cdr " ++ show e
+    show (Cons e1 e2) = showBracket $ "cons " ++ show e1 ++ " " ++ show e2
+    show (CharLit c) = show c
+    show (Vec t e) = showBracket $ "vector-ref " ++ unpack t ++ " " ++ show e
+    show (Variable t) = unpack t
+    show (Function t es) = showBracket $ unpack t ++ " " ++ show es
+    show (Let t e1 e2) = showBracket $ "let " ++ unpack t ++ " " ++ show e1 ++ " " ++ show e2
+    show (Lambda t e) = showBracket $ "lambda " ++ unpack t ++ " " ++ show e
+    -- show (LambdaCall e e) = showBracket $ ""
+
 
 exprParser :: Parser Expr
 exprParser = falseParser <|> trueParser <|> notParser <|> andParser <|> orParser <|>
@@ -205,7 +238,7 @@ data Statement
     | MakeVector Text Expr
     | SetVector Text Expr Expr
     | Return Expr
-    deriving Show
+    deriving (Show, Eq)
 
 statementParser :: Parser Statement
 statementParser = statementListParser <|> setParser <|> skipParser <|>
@@ -280,7 +313,7 @@ returnParser = do
 
 data Function
     = Def Text [Text] Statement
-    deriving Show
+    deriving (Show, Eq)
 
 functionParser :: Parser Function
 functionParser = defFuncParser
