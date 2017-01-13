@@ -1,8 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Specs.EvalSpec (
-        evalTests,
-        evalSpecs
+        evalTests
     ) where
 
 import Test.QuickCheck
