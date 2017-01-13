@@ -112,7 +112,6 @@ evalExprParser expr@(Function t es) = do
     case v of
         (FunctionValue ts stmt fenv) -> do
             env <- get
-            xxx <- search "x"
             put fenv
             inject env t expr ts es
             evalStatementParser stmt
@@ -133,8 +132,7 @@ evalExprParser (Lambda t e) = do
     env <- get
     return $ FunctionValue [t] (Return e) env
 evalExprParser (Number n) = return $ DoubleValue n
-evalExprParser TrueLit = return $ BoolValue True
-evalExprParser FalseLit = return $ BoolValue False
+evalExprParser (BoolLit b) = return $ BoolValue b
 evalExprParser expr@(Add e1 e2) = do
     r1 <- evalExprParser e1
     r2 <- evalExprParser e2
@@ -242,8 +240,7 @@ evalStatementParser (Return e) = do
 
 evalFunctionParser :: Function -> Eval ()
 evalFunctionParser (Def t ts stmt) = do
-    env <- get
-    put $ updateM t ts stmt env
+    modify $ updateM t ts stmt
 
 evalExpr :: String -> Eval Value
 evalExpr t = case parseOnly exprParser $ pack t of

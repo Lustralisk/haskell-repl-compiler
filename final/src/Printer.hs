@@ -22,8 +22,8 @@ printExpr offset style (Variable t) = (offset, style) >>> [t]
 printExpr offset style (Vec t e) = (offset, style) >>> ["(vector-ref ", t, (printExpr offset True e), ")"]
 printExpr offset style (Number e) = (offset, style) >>> [pack (show e)]
 printExpr offset style (CharLit e) = (offset, style) >>> ["\'", pack [e], "\'"]
-printExpr offset style TrueLit = (offset, style) >>> ["True"]
-printExpr offset style FalseLit = (offset, style) >>> ["False"]
+printExpr offset style (BoolLit True) = (offset, style) >>> ["True"]
+printExpr offset style (BoolLit False) = (offset, style) >>> ["False"]
 printExpr offset style (Function t es') = case es' of
     [] -> (offset, style) >>> ["(", t, ")"]
     (e:es) -> (offset, style) >>> ["(", t, (printExpr 1 True e), ss, ")"] where
@@ -35,41 +35,177 @@ printExpr offset style (Let t e1 e2) = (offset, style) >>> ["(let ", t, " ", s1,
     s1 = printExpr (offset + 6 + (Data.Text.length t)) False e1
     s2 = printExpr (offset + 2) True e2
 
-printExpr offset style (Add e1 e2) = (offset, style) >>> ["(+ ", s1, " ", s2, ")"] where
-    s1 = printExpr 0 True e1
-    s2 = printExpr 0 True e2
-printExpr offset style (Sub e1 e2) = (offset, style) >>> ["(- ", s1, " ", s2, ")"] where
-    s1 = printExpr 0 True e1
-    s2 = printExpr 0 True e2
-printExpr offset style (Mul e1 e2) = (offset, style) >>> ["(* ", s1, " ", s2, ")"] where
-    s1 = printExpr 0 True e1
-    s2 = printExpr 0 True e2
-printExpr offset style (Div e1 e2) = (offset, style) >>> ["(/ ", s1, " ", s2, ")"] where
-    s1 = printExpr 0 True e1
-    s2 = printExpr 0 True e2
-printExpr offset style (And e1 e2) = (offset, style) >>> ["(and ", s1, " ", s2, ")"] where
-    s1 = printExpr 0 True e1
-    s2 = printExpr 0 True e2
-printExpr offset style (Or e1 e2) = (offset, style) >>> ["(or ", s1, " ", s2, ")"] where
-    s1 = printExpr 0 True e1
-    s2 = printExpr 0 True e2
+printExpr offset style (Add e1@(Number _) e2@(Number _)) = (offset, style) >>> ["(+ ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Add e1@(Number _) e2@(Variable _)) = (offset, style) >>> ["(+ ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Add e1@(Variable _) e2@(Number _)) = (offset, style) >>> ["(+ ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Add e1@(Variable _) e2@(Variable _)) = (offset, style) >>> ["(+ ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Add e1 e2) = (offset, style) >>> ["(+ ", s1, "\r\n", s2, ")"] where
+        s1 = printExpr (offset + 3) False e1
+        s2 = printExpr (offset + 3) True e2
+
+printExpr offset style (Sub e1@(Number _) e2@(Number _)) = (offset, style) >>> ["(- ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Sub e1@(Number _) e2@(Variable _)) = (offset, style) >>> ["(- ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Sub e1@(Variable _) e2@(Number _)) = (offset, style) >>> ["(- ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Sub e1@(Variable _) e2@(Variable _)) = (offset, style) >>> ["(- ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Sub e1 e2) = (offset, style) >>> ["(- ", s1, "\r\n", s2, ")"] where
+        s1 = printExpr (offset + 3) False e1
+        s2 = printExpr (offset + 3) True e2
+
+printExpr offset style (Mul e1@(Number _) e2@(Number _)) = (offset, style) >>> ["(* ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Mul e1@(Number _) e2@(Variable _)) = (offset, style) >>> ["(* ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Mul e1@(Variable _) e2@(Number _)) = (offset, style) >>> ["(* ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Mul e1@(Variable _) e2@(Variable _)) = (offset, style) >>> ["(* ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Mul e1 e2) = (offset, style) >>> ["(* ", s1, "\r\n", s2, ")"] where
+        s1 = printExpr (offset + 3) False e1
+        s2 = printExpr (offset + 3) True e2
+
+printExpr offset style (Div e1@(Number _) e2@(Number _)) = (offset, style) >>> ["(/ ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Div e1@(Number _) e2@(Variable _)) = (offset, style) >>> ["(/ ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Div e1@(Variable _) e2@(Number _)) = (offset, style) >>> ["(/ ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Div e1@(Variable _) e2@(Variable _)) = (offset, style) >>> ["(/ ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Div e1 e2) = (offset, style) >>> ["(/ ", s1, "\r\n", s2, ")"] where
+        s1 = printExpr (offset + 3) False e1
+        s2 = printExpr (offset + 3) True e2
+
+printExpr offset style (And e1@(BoolLit _) e2@(BoolLit _)) = (offset, style) >>> ["(and ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (And e1@(BoolLit _) e2@(Variable _)) = (offset, style) >>> ["(and ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (And e1@(Variable _) e2@(BoolLit _)) = (offset, style) >>> ["(and ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (And e1@(Variable _) e2@(Variable _)) = (offset, style) >>> ["(and ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (And e1 e2) = (offset, style) >>> ["(and ", s1, "\r\n", s2, ")"] where
+        s1 = printExpr (offset + 5) False e1
+        s2 = printExpr (offset + 5) True e2
+printExpr offset style (Or e1@(BoolLit _) e2@(BoolLit _)) = (offset, style) >>> ["(or ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Or e1@(BoolLit _) e2@(Variable _)) = (offset, style) >>> ["(or ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Or e1@(Variable _) e2@(BoolLit _)) = (offset, style) >>> ["(or ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Or e1@(Variable _) e2@(Variable _)) = (offset, style) >>> ["(or ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Or e1 e2) = (offset, style) >>> ["(or ", s1, "\r\n", s2, ")"] where
+        s1 = printExpr (offset + 4) False e1
+        s2 = printExpr (offset + 4) True e2
 printExpr offset style (Not e) = (offset, style) >>> ["(not ", s, ")"] where
-    s = printExpr 0 True e
-printExpr offset style (Eq e1 e2) = (offset, style) >>> ["(eq ", s1, " ", s2, ")"] where
-    s1 = printExpr 0 True e1
-    s2 = printExpr 0 True e2
-printExpr offset style (Lw e1 e2) = (offset, style) >>> ["(< ", s1, " ", s2, ")"] where
-    s1 = printExpr 0 True e1
-    s2 = printExpr 0 True e2
-printExpr offset style (Le e1 e2) = (offset, style) >>> ["(<= ", s1, " ", s2, ")"] where
-    s1 = printExpr 0 True e1
-    s2 = printExpr 0 True e2
-printExpr offset style (Gr e1 e2) = (offset, style) >>> ["(> ", s1, " ", s2, ")"] where
-    s1 = printExpr 0 True e1
-    s2 = printExpr 0 True e2
-printExpr offset style (Ge e1 e2) = (offset, style) >>> ["(>= ", s1, " ", s2, ")"] where
-    s1 = printExpr 0 True e1
-    s2 = printExpr 0 True e2
+    s = printExpr (offset + 5) False e
+printExpr offset style (Eq e1@(Number _) e2@(Number _)) = (offset, style) >>> ["(= ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Eq e1@(Number _) e2@(Variable _)) = (offset, style) >>> ["(= ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Eq e1@(Variable _) e2@(Number _)) = (offset, style) >>> ["(= ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Eq e1@(Variable _) e2@(Variable _)) = (offset, style) >>> ["(= ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Eq e1 e2) = (offset, style) >>> ["(= ", s1, "\r\n", s2, ")"] where
+        s1 = printExpr (offset + 3) False e1
+        s2 = printExpr (offset + 3) True e2
+printExpr offset style (Lw e1@(Number _) e2@(Number _)) = (offset, style) >>> ["(< ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Lw e1@(Number _) e2@(Variable _)) = (offset, style) >>> ["(< ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Lw e1@(Variable _) e2@(Number _)) = (offset, style) >>> ["(< ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Lw e1@(Variable _) e2@(Variable _)) = (offset, style) >>> ["(< ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Lw e1 e2) = (offset, style) >>> ["(< ", s1, "\r\n", s2, ")"] where
+        s1 = printExpr (offset + 3) False e1
+        s2 = printExpr (offset + 3) True e2
+printExpr offset style (Le e1@(Number _) e2@(Number _)) = (offset, style) >>> ["(<= ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Le e1@(Number _) e2@(Variable _)) = (offset, style) >>> ["(<= ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Le e1@(Variable _) e2@(Number _)) = (offset, style) >>> ["(<= ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Le e1@(Variable _) e2@(Variable _)) = (offset, style) >>> ["(<= ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Le e1 e2) = (offset, style) >>> ["(<= ", s1, "\r\n", s2, ")"] where
+        s1 = printExpr (offset + 4) False e1
+        s2 = printExpr (offset + 4) True e2
+printExpr offset style (Gr e1@(Number _) e2@(Number _)) = (offset, style) >>> ["(> ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Gr e1@(Number _) e2@(Variable _)) = (offset, style) >>> ["(> ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Gr e1@(Variable _) e2@(Number _)) = (offset, style) >>> ["(> ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Gr e1@(Variable _) e2@(Variable _)) = (offset, style) >>> ["(> ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Gr e1 e2) = (offset, style) >>> ["(> ", s1, "\r\n", s2, ")"] where
+        s1 = printExpr (offset + 3) False e1
+        s2 = printExpr (offset + 3) True e2
+printExpr offset style (Ge e1@(Number _) e2@(Number _)) = (offset, style) >>> ["(>= ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Ge e1@(Number _) e2@(Variable _)) = (offset, style) >>> ["(>= ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Ge e1@(Variable _) e2@(Number _)) = (offset, style) >>> ["(>= ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Ge e1@(Variable _) e2@(Variable _)) = (offset, style) >>> ["(>= ", s1, " ", s2, ")"] where
+        s1 = printExpr 0 True e1
+        s2 = printExpr 0 True e2
+printExpr offset style (Ge e1 e2) = (offset, style) >>> ["(>= ", s1, "\r\n", s2, ")"] where
+        s1 = printExpr (offset + 4) False e1
+        s2 = printExpr (offset + 4) True e2
 
 printExpr offset style (Cons e1 e2) = (offset, style) >>> ["(cons ", s1, "\r\n", s2, ")"] where
     s1 = printExpr 0 True e1
@@ -93,7 +229,7 @@ printStatement offset style Skip = (offset, style) >>> ["skip"]
 printStatement offset style (Set t e) = (offset, style) >>> ["(set! ", t, "\r\n", c, ")"] where
     c = printExpr (offset + 6) True e
 printStatement offset style (If e s1 s2) = (offset, style) >>> ["(if ", c, "\r\n", b1, "\r\n", b2, ")"] where
-    c = printExpr offset False e
+    c = printExpr (offset + 4) False e
     b1 = printStatement (offset + 2) True s1
     b2 = printStatement (offset + 2) True s2
 printStatement offset style (While e s) = (offset, style) >>> ["(while ", c, "\r\n", b, ")"] where
@@ -112,8 +248,10 @@ printFunction offset style (Def t ts ss) = (offset, style) >>> ["(define ", t, "
     bs = printStatement (offset + 2) True ss
 
 prettyPrint :: [Char] -> Text
-prettyPrint line = case parseOnly statementParser $ pack line of
-    (Right statement) -> printStatement 0 True statement
-    _ -> case parseOnly exprParser $ pack line of
-        (Right expr) -> printExpr 0 True expr
-        _ -> "What?"
+prettyPrint line = case parseOnly functionParser $ pack line of
+    (Right function) -> printFunction 0 True function
+    _ -> case parseOnly statementParser $ pack line of
+        (Right statement) -> printStatement 0 True statement
+        _ -> case parseOnly exprParser $ pack line of
+            (Right expr) -> printExpr 0 True expr
+            _ -> "What?"
