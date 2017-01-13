@@ -46,6 +46,7 @@ executeLoop cpt hist cnt inh ouh = do
                     "" -> executeLoop cpt' "" 0 inh ouh
                     _ -> do
                         putStrLn line'
+                        --print cpt'
                         hPutStr ouh out
                         executeLoop cpt' "" 0 inh ouh
                     where
