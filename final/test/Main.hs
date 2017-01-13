@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Spec where
+module Main where
 
 import Test.QuickCheck
 import Text.Printf

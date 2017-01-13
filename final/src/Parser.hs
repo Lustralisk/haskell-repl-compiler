@@ -49,8 +49,7 @@ variNameParser = lexeme $ many1 $ choice [char c | c <- ['a'..'z']]
 {- Divide declare -}
 
 data Expr
-    = TrueLit
-    | FalseLit
+    = BoolLit Bool
     | Not Expr
     | And Expr Expr
     | Or Expr Expr
@@ -86,10 +85,10 @@ exprParser = falseParser <|> trueParser <|> notParser <|> andParser <|> orParser
              vectorParser <|> functionCallParser <|> variableParser
 
 falseParser :: Parser Expr
-falseParser = lexeme $ string "False" $> FalseLit
+falseParser = lexeme $ string "False" $> BoolLit False
 
 trueParser :: Parser Expr
-trueParser = lexeme $ string "True" $> TrueLit
+trueParser = lexeme $ string "True" $> BoolLit True
 
 {- WARN need to strengthen -}
 floatParser :: Parser Expr

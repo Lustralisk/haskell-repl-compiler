@@ -132,7 +132,7 @@ evalExprParser (Lambda t e) = do
     env <- get
     return $ FunctionValue [t] (Return e) env
 evalExprParser (Number n) = return $ DoubleValue n
-evalExprParser TrueLit = return $ BoolValue True
+evalExprParser (BoolLit b) = return $ BoolValue b
 evalExprParser expr@(Add e1 e2) = do
     r1 <- evalExprParser e1
     r2 <- evalExprParser e2
@@ -147,6 +147,33 @@ evalExprParser expr@(Sub e1 e2) = do
         (DoubleValue v1, DoubleValue v2) -> return $ DoubleValue (v1 - v2)
         (DoubleValue _, _) -> throwError $ TypeError r2 expr
         _ -> throwError $ TypeError r1 expr
+evalExprParser expr@(Div e1 e2) = do
+    r1 <- evalExprParser e1
+    r2 <- evalExprParser e2
+    case (r1, r2) of
+        (DoubleValue _, DoubleValue 0) -> throwError $ DividedByZeroError expr
+        (DoubleValue v1, DoubleValue v2) -> return $ DoubleValue (v1 / v2)
+        (DoubleValue _, _) -> throwError $ TypeError r2 expr
+        _ -> throwError $ TypeError r1 expr
+evalExprParser expr@(And e1 e2) = do
+    r1 <- evalExprParser e1
+    r2 <- evalExprParser e2
+    case (r1, r2) of
+        (BoolValue v1, BoolValue v2) -> return $ BoolValue (v1 && v2)
+        (BoolValue _, _) -> throwError $ TypeError r2 expr
+        _ -> throwError $ TypeError r1 expr
+evalExprParser expr@(Or e1 e2) = do
+    r1 <- evalExprParser e1
+    r2 <- evalExprParser e2
+    case (r1, r2) of
+        (BoolValue v1, BoolValue v2) -> return $ BoolValue (v1 || v2)
+        (BoolValue _, _) -> throwError $ TypeError r2 expr
+        _ -> throwError $ TypeError r1 expr
+evalExprParser expr@(Not e) = do
+    r <- evalExprParser e
+    case r of
+        (BoolValue v) -> return $ BoolValue (not v)
+        _ -> throwError $ TypeError r expr
 evalExprParser expr@(Lw e1 e2) = do
     r1 <- evalExprParser e1
     r2 <- evalExprParser e2
@@ -159,14 +186,6 @@ evalExprParser expr@(Gr e1 e2) = do
     r2 <- evalExprParser e2
     case (r1, r2) of
         (DoubleValue v1, DoubleValue v2) -> return $ BoolValue (v1 > v2)
-        (DoubleValue _, _) -> throwError $ TypeError r2 expr
-        _ -> throwError $ TypeError r1 expr
-evalExprParser expr@(Div e1 e2) = do
-    r1 <- evalExprParser e1
-    r2 <- evalExprParser e2
-    case (r1, r2) of
-        (DoubleValue _, DoubleValue 0) -> throwError $ DividedByZeroError expr
-        (DoubleValue v1, DoubleValue v2) -> return $ DoubleValue (v1 / v2)
         (DoubleValue _, _) -> throwError $ TypeError r2 expr
         _ -> throwError $ TypeError r1 expr
 
@@ -246,12 +265,15 @@ eval line = case parseOnly functionParser $ pack line of
         (Right statement) -> (\() -> "") `liftM` evalStatementParser statement
         _ -> printEvalExpr $ evalExpr line
 
-runEval line env = runState (runExceptT $ eval line) env
+runEvalExpr line env = value where
+    (Right value, _) = runState (runExceptT $ evalExpr line) env
+runEval line env = value where
+    (Right value, _) = runState (runExceptT $ eval line) env
 
 printEvalExpr :: Eval Value -> Eval String
 printEvalExpr = liftM showEvalExpr where
     showEvalExpr (BoolValue b) = show b
     showEvalExpr (DoubleValue d) = show d
     showEvalExpr (CharValue c) = show c
-    showEvalExpr (FunctionValue [t] s e) = (show [t]) ++ " " ++ (show s) ++ " " ++ (show e)
+    showEvalExpr (FunctionValue [t] s e) = show [t] ++ " " ++ show s ++ " " ++ show e
     showEvalExpr (ListValue l) = Prelude.concat [showEvalExpr li ++ ", " | li <- l]
