@@ -8,8 +8,9 @@ import Data.Either
 import Control.Monad
 import qualified Data.Map as M
 import System.IO
+import System.Console.Readline
 import Parser
-import Eval
+import EvalT
 import Printer
 import Debug.Trace
 
@@ -77,3 +78,13 @@ replLoop env hist cnt = do
 
 repl :: IO ()
 repl = replLoop M.empty "" 0
+
+readEvalPrintLoop :: IO ()
+readEvalPrintLoop = do
+    maybeLine <- readline "% "
+    case maybeLine of
+        Nothing -> return () -- EOF / control-d
+        Just "exit" -> return ()
+        Just line -> do addHistory line
+                        putStrLn $ "The user input: " ++ (show line)
+                        readEvalPrintLoop
