@@ -95,6 +95,7 @@ http://catamorph.de/documents/Transformers.pdf
 07. smart REPL
 08. GNU emacs coding style for printer
 09. use Monad, Monad Transformer
+10. random expression tree for QuickCheck
 
 ====================================================
     ______                                __

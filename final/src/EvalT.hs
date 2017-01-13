@@ -268,8 +268,7 @@ evalStatementParser (Return e) = do
 
 
 evalFunctionParser :: Function -> Eval ()
-evalFunctionParser (Def t ts stmt) = do
-    modify $ updateM t ts stmt
+evalFunctionParser (Def t ts stmt) = modify $ updateM t ts stmt
 
 evalExpr :: String -> Eval Value
 evalExpr t = case parseOnly exprParser $ pack t of
