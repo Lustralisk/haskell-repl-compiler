@@ -72,80 +72,49 @@ genExpr limit = sized genN where
 
 {- Gen Statement -}
 
-type Count a = State Int a
+genSet :: Gen Statement
+genSet = liftM2 Set genVarName (genExpr 2)
 
-genVarNameT :: Count (Gen Text)
-genVarNameT = return (pack <$> listOf1 (elements ['a'..'z']))
+genSkip :: Gen Statement
+genSkip = return Skip
 
-consume :: Int -> Count ()
-consume n = state $ \count -> ((), count - n)
+genIf :: Gen Statement
+genIf = liftM3 If (genExpr 2) (genStmtList 3) (genStmtList 3)
 
-listOf1' :: Int -> Gen a -> Gen [a]
-listOf1' n gen = do
-    k <- choose (1, n)
-    vectorOf k gen
+genWhile :: Gen Statement
+genWhile = liftM2 While (genExpr 2) (genStmtList 3)
 
-genSet :: Count (Gen Statement)
-genSet = do
-    consume 1
-    return $ liftM2 Set genVarName (genExpr 2)
+genMakeVector :: Gen Statement
+genMakeVector = liftM2 MakeVector genVarName (genExpr 2)
 
-genSkip :: Count (Gen Statement)
-genSkip = do
-    consume 1
-    return $ return Skip
+genSetVector :: Gen Statement
+genSetVector = liftM3 SetVector genVarName (genExpr 1) (genExpr 2)
 
-genIf :: Count (Gen Statement)
-genIf = do
-    consume 1
-    t1 <- genStmtList
-    t2 <- genStmtList
-    return $ liftM3 If (genExpr 2) t1 t2
+genReturn :: Gen Statement
+genReturn = liftM Return (genExpr 2)
 
-genWhile :: Count (Gen Statement)
-genWhile = do
-    consume 1
-    t <- genStmtList
-    return $ liftM2 While (genExpr 2) t
-
-genMakeVector :: Count (Gen Statement)
-genMakeVector = do
-    consume 1
-    return $ liftM2 MakeVector genVarName (genExpr 2)
-
-genSetVector :: Count (Gen Statement)
-genSetVector = do
-    consume 2
-    return $ liftM3 SetVector genVarName (genExpr 1) (genExpr 2)
-
-genReturn :: Count (Gen Statement)
-genReturn = do
-    consume 1
-    return $ liftM Return (genExpr 2)
-
-genStmtList :: Count (Gen Statement)
-genStmtList = do
-    a0 <- trace "0" genStmtList
-    a1 <- trace "1" genSet
-    a2 <- trace "2" genSkip
-    a3 <- trace "3" genWhile
-    a4 <- trace "4" genIf
-    a5 <- trace "5" genMakeVector
-    a6 <- trace "6" genSetVector
-    a7 <- trace "7" genReturn
-    n <- get
-    if n <= 0
-        then let l1 = listOf1 a2 in return $ liftM StatementList l1
-        else let l2 = listOf1 a2 in return $ liftM StatementList l2
+genStmtList :: Int -> Gen Statement
+genStmtList limit = liftM StatementList $ vectorOf limit $ oneof [genSet, genSkip, genMakeVector, genSetVector, genReturn]
 
 genStatement :: Int -> Gen Statement
-genStatement limit = a where
-    (a, _) = runState genStmtList limit
+genStatement limit = liftM StatementList $ vectorOf limit $ oneof [genStmtList limit, genSet, genSkip, genIf, genWhile, genMakeVector, genSetVector, genReturn]
 
 {- Gen Function -}
+
+genFunction :: Int -> Gen Function
+genFunction limit = do
+    v <- genVarName
+    vs <- listOf1 genVarName
+    s <- genStatement limit
+    return (Def v vs s)
+
+{- Gen Property -}
 
 prop_ShowParseExpr :: Property
 prop_ShowParseExpr = forAll (genExpr 5) $ \x -> parseOnly exprParser (pack $ show x) == Right x
 
 prop_ShowParseStmt :: Property
-prop_ShowParseStmt = forAll (genStatement 10) $ \x -> parseOnly statementParser (pack $ show x) == Right x
+prop_ShowParseStmt = forAll (genStatement 6) $ \x -> parseOnly statementParser (pack $ show x) == Right x
+
+prop_ShowParseFunc :: Property
+prop_ShowParseFunc = forAll (genFunction 6) $ \x -> parseOnly functionParser (pack $ show x) == Right x
