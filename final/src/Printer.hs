@@ -247,7 +247,7 @@ printFunction :: Int -> Bool -> Function -> Text
 printFunction offset style (Def t ts ss) = (offset, style) >>> ["(define ", t, " (", " " `intercalate` ts, ")\r\n", bs] where
     bs = printStatement (offset + 2) True ss
 
-prettyPrint :: [Char] -> Text
+prettyPrint :: String -> Text
 prettyPrint line = case parseOnly functionParser $ pack line of
     (Right function) -> printFunction 0 True function
     _ -> case parseOnly statementParser $ pack line of

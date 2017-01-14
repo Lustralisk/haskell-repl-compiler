@@ -51,7 +51,7 @@ data CMD = AND DST SRC
         | POP DST
         | HALT
 
-data SEGITEM = LBLITEM Label
+data SEGITEM = LBLITEM LBL
         | CMDITEM CMD
         | ENDITEM
 

@@ -13,8 +13,8 @@ import System.IO
 import Parser
 import Compiler.CompExec
 
-type MTable = M.Map [Char] IMM
-type LblTable = M.Map [Char] Int
+type MTable = M.Map String IMM
+type LblTable = M.Map String Int
 type ValueStack = [IMM]
 type EIP = Int
 type Layer = Int

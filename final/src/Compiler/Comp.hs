@@ -20,7 +20,7 @@ getMemoSet' :: Int -> AvailMemo -> AvailMemo
 getMemoSet' 0 avm = S.insert 0 avm
 getMemoSet' x avm = getMemoSet' (x - 1) (S.insert x avm)
 
-translateLang :: [Char] -> [Char] -> IO ()
+translateLang :: String -> String -> IO ()
 translateLang input_path output_path = do
   inh <- openFile input_path ReadMode
   ouh <- openFile output_path WriteMode
@@ -28,7 +28,7 @@ translateLang input_path output_path = do
   hClose inh
   hClose ouh
 
-executeLoop :: CompTable -> [Char] -> Int -> Handle -> Handle -> IO ()
+executeLoop :: CompTable -> String -> Int -> Handle -> Handle -> IO ()
 executeLoop cpt hist cnt inh ouh = do
     isEof <- hIsEOF inh
     if isEof

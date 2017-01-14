@@ -8,6 +8,7 @@ import Data.Attoparsec.Text
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Parser
+import EvalT
 
 data CmpValue = DefaultValue
            | FuncValue [Text] Statement CompTable
@@ -18,7 +19,7 @@ type Var2Memo = M.Map Text (Int, CmpValue)
 type AvailMemo = S.Set Int
 type CompTable = (Var2Memo, AvailMemo, Int)
 
-findMemo :: Text -> CompTable -> [Char]
+findMemo :: Text -> CompTable -> String
 findMemo t (v2m, avm, lbl) = case M.lookup t v2m of
     Just (i, v) -> "r" ++ (show i)
     _ -> "err"
@@ -34,17 +35,17 @@ injectCPT cpt ts = case ts of
     (x:xs) -> injectCPT cpttmp xs where
         (_, cpttmp) = getMemo x DefaultValue cpt
 
-getMemo :: Text -> CmpValue -> CompTable -> ([Char], CompTable)
+getMemo :: Text -> CmpValue -> CompTable -> (String, CompTable)
 getMemo t val (v2m, avm, lbl) = ("r" ++ (show tmpreg), cpt'')
   where
       tmpreg = S.findMin avm
       avm' = S.deleteMin avm
       cpt'' = updateCPT t tmpreg val (v2m, avm', lbl)
 
-getVarCPT :: CompTable -> CmpValue -> [Expr] -> [Char]
+getVarCPT :: CompTable -> CmpValue -> [Expr] -> String
 getVarCPT cpt (FuncValue t _ cptfunc) e = getVarCPT' cpt cptfunc t e
 
-getVarCPT' :: CompTable -> CompTable -> [Text] -> [Expr] -> [Char]
+getVarCPT' :: CompTable -> CompTable -> [Text] -> [Expr] -> String
 getVarCPT' cpt fcpt t e = case t of
     [] -> ""
     (tl: ts) -> lineall ++ getVarCPT' cpt fcpt ts es where
@@ -54,13 +55,13 @@ getVarCPT' cpt fcpt t e = case t of
         lineall = linee ++ lineval
         (e': es) = e
 
-getPopLine :: CompTable -> [Text] -> [Char]
+getPopLine :: CompTable -> [Text] -> String
 getPopLine fcpt [] = ""
 getPopLine fcpt (x: xs) = lineval ++ getPopLine fcpt xs where
     regtl = findMemo x fcpt
     lineval = "pop " ++ regtl ++ "\n"
 
-binOperatorBlock :: CompTable -> Expr -> Expr -> [Char] -> (CompTable, [Char])
+binOperatorBlock :: CompTable -> Expr -> Expr -> String -> (CompTable, String)
 binOperatorBlock cpt e1 e2 mem = (cpt'', code1 ++ code2 ++ code3 ++ code4 ++ code5 ++ code6)
     where (cpt', code1) = compExprParser cpt e1
           code2 = "push A\n"
@@ -69,7 +70,7 @@ binOperatorBlock cpt e1 e2 mem = (cpt'', code1 ++ code2 ++ code3 ++ code4 ++ cod
           code5 = "pop A\n"
           code6 = mem ++ " A B\n"
 
-cmpOperatorBlock :: CompTable -> Expr -> Expr -> [Char] -> (CompTable, [Char])
+cmpOperatorBlock :: CompTable -> Expr -> Expr -> String -> (CompTable, String)
 cmpOperatorBlock cpt e1 e2 code7 = (cpt'', code1 ++ code2 ++ code3 ++ code4 ++ code5 ++ code6 ++ code7 ++ code8)
     where (cpt', code1) = compExprParser cpt e1
           code2 = "push A\n"
@@ -79,7 +80,7 @@ cmpOperatorBlock cpt e1 e2 code7 = (cpt'', code1 ++ code2 ++ code3 ++ code4 ++ c
           code6 = "cmp A B\n"
           code8 = "mov A Cs\n"
 
-compExprParser :: CompTable -> Expr -> (CompTable, [Char])
+compExprParser :: CompTable -> Expr -> (CompTable, String)
 compExprParser (v2m, avm, lbl) (Variable t) = case M.lookup t v2m of
     Just (i, v) -> ((v2m, avm, lbl), "mov A " ++ "r" ++ (show i) ++ "\n")
     _ -> ((v2m, avm, lbl), "halt\n")
@@ -119,17 +120,17 @@ compExprParser cpt (Let t e1 e2) = ((v2m, avm'', lbl''), linefinal) where
     (v2m', avm', lbl') = cpt'
     (v2m'', avm'', lbl'') = cpt''
 compExprParser cpt (Lambda t e) = (v2m, avm'', lbl'') where
-    (reg, cpt') = getMemo t (DefaultValue) cpt
+    (reg, cpt') = getMemo t DefaultValue cpt
     linev = "$$Lambda" ++ (show lbl') "\n"
     (cpt'' ,linefunc) = compExprParser (v2m', avm', lbl' + 1) e
-    lineend = "ret\n"
-    lineend = "mov A " ++ linev ++ "\n"
+    -- lineend = "ret\n"
+    -- lineend = "mov A " ++ linev ++ "\n"
     (v2m, avm, lbl) = cpt
     (v2m', avm', lbl') = cpt'
     (v2m'', avm'', lbl'') = cpt''
 
 
-compStatParser :: CompTable -> Statement -> (CompTable, [Char])
+compStatParser :: CompTable -> Statement -> (CompTable, String)
 compStatParser cpt (StatementList s) = case s of
     [] -> (cpt, "")
     (x:xs) -> case x of
@@ -183,7 +184,7 @@ compStatParser cpt (Return e) = (cpt, lineexpr ++ linefinal) where
     lineexpr = compExprParser cpt e
     linefinal = "mov rlt A\n"
 
-compFunctionParser :: CompTable -> Function -> (CompTable, [Char])
+compFunctionParser :: CompTable -> Function -> (CompTable, String)
 compFunctionParser cpt (Def t ts stat) = (cpt', linefunc) where
     (v2m, avm, lbl) = cpt
     (v2m', avm', lbl') = injectCPT cpt ts
@@ -196,14 +197,14 @@ compFunctionParser cpt (Def t ts stat) = (cpt', linefunc) where
     linefinal = "ret\n"
     linefunc = lineTag ++ linebody ++ linefinal
 
-compExpr :: CompTable -> [Char] -> [Char]
+compExpr :: CompTable -> String -> String
 compExpr cpt t = let (Right expr) = (parseOnly exprParser (pack t)) in compExprParser cpt expr
 
-compStat :: CompTable -> [Char] -> (CompTable, [Char])
+compStat :: CompTable -> String -> (CompTable, String)
 compStat cpt t = compStatParser cpt statement where
     (Right statement) = parseOnly statementParser $ pack t
 
-comp :: CompTable -> [Char] -> (CompTable, [Char])
+comp :: CompTable -> String -> (CompTable, String)
 comp cpt line = case parseOnly functionParser $ pack line of
     (Right function) -> compFunctionParser cpt function
     _ -> case parseOnly statementParser $ pack line of
