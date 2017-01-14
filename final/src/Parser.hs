@@ -103,11 +103,12 @@ instance Show Expr where
     show (CharLit c) = show c
     show (Vec t e) = showBracket $ "vector-ref " ++ unpack t ++ " " ++ show e
     show (Variable t) = unpack t
-    show (Function t es) = showBracket $ unpack t ++ " " ++ show es
+    show (Function t es) = showBracket $ unpack t ++ f es where
+        f [] = ""
+        f (x:xs) = " " ++ show x ++ f xs
     show (Let t e1 e2) = showBracket $ "let " ++ unpack t ++ " " ++ show e1 ++ " " ++ show e2
     show (Lambda t e) = showBracket $ "lambda " ++ unpack t ++ " " ++ show e
     -- show (LambdaCall e e) = showBracket $ ""
-
 
 exprParser :: Parser Expr
 exprParser = falseParser <|> trueParser <|> notParser <|> andParser <|> orParser <|>

@@ -21,8 +21,8 @@ data IMM = IMMbool Bool
 data VCC = VCC MEM Int
 data FLG = T | F | Gr | Eq | Ls | Cs
     deriving (Show)
-data Label = AddrLabel Int
-            | FuncLabel Text
+data LBL = LBLA Int
+            | LBLF Text
 data DST = DSTreg REG
         | DSTmem MEM
         | DSTvcc VCC
@@ -32,6 +32,7 @@ data SRC = SRCreg REG
         | SRCvcc VCC
         | SRCflg FLG
         | SRCimm IMM
+        | SRClbl LBL
 data CMD = AND DST SRC
         | OR DST SRC
         | NOT DST
@@ -44,10 +45,11 @@ data CMD = AND DST SRC
         | MOV DST SRC
         | HEAD DST SRC
         | TAIL DST SRC
-        | CALL Label
+        | CALL LBL
         | RET
         | PUSH DST
         | POP DST
+        | HALT
 
 data SEGITEM = LBLITEM Label
         | CMDITEM CMD
@@ -65,9 +67,9 @@ instance Show IMM where
 instance Show VCC where
     show (VCC m d) = show m ++ "[" ++ show d ++ "]"
 
-instance Show Label where
-    show (AddrLabel d) = "$$" ++ show d
-    show (FuncLabel t) = "$$" ++ unpack t
+instance Show LBL where
+    show (LBLA d) = "$$" ++ show d
+    show (LBLF t) = "$$" ++ unpack t
 
 instance Show DST where
     show (DSTreg r) = show r
@@ -150,13 +152,13 @@ dstParser = dParser regParser DSTreg <|> dParser vccParser DSTvcc <|>
 srcParser :: Parser SRC
 srcParser = sParser regParser SRCreg <|> sParser vccParser SRCvcc <|>
             sParser memParser SRCmem <|> sParser immParser SRCimm <|>
-            sParser flgParser SRCflg where
+            sParser flgParser SRCflg <|> sParser lblParser SRClbl where
                 sParser parser op = do
                     v <- parser
                     return (op v)
 
-labelParser :: Parser Label
-labelParser = lParser decimal AddrLabel <|> lParser takeText FuncLabel where
+lblParser :: Parser LBL
+lblParser = lParser decimal LBLA <|> lParser takeText LBLF where
     lParser parser op = do
         string "$$"
         d <- parser
@@ -182,7 +184,7 @@ cmdParser = cParser "and" AND <|> cParser "or" OR <|> cParser "add" ADD <|> cPar
                 callParser = do
                     string "call"
                     space
-                    label <- labelParser
+                    label <- lblParser
                     return (CALL label)
                 retParser = do
                     string "ret"

@@ -4,11 +4,13 @@ module Main where
 
 import Test.QuickCheck
 import Text.Printf
-import Specs.ParserSpec
+import Specs.ParserTest
+import Specs.EvalTest
 import Specs.EvalSpec
 
-tests  = evalTests
+tests  = evalSpecs
         ++ parserTests
+        ++ evalTests
 
 main :: IO ()
 main = do
