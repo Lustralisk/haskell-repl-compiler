@@ -85,15 +85,6 @@ isInt d = ((toEnum (fromEnum d)) :: Double) == d
 toText :: String -> Text
 toText = pack
 
-splitLn :: Text -> [String]
-splitLn = Prelude.map unpack . splitOn "\r\n"
-
-charCount :: Char -> String -> Int
-charCount c s = Data.Text.count (pack [c]) (pack s)
-
-newCount :: Int -> String -> Int
-newCount i s = i + charCount '(' s - charCount ')' s
-
 -- runEval env ev = runState (runExceptT ev) env
 
 evalExprParser :: Expr -> Eval Value
@@ -297,6 +288,8 @@ runEvalExpr :: String -> Either Errors Value
 runEvalExpr line = case runState (runExceptT $ evalExpr line) M.empty of
     (Right a, _) -> Right a
     (Left err, _) -> Left err
+
+runResult line env = runState (runExceptT $ eval $ unpack line) env
 
 runEvalStmt :: String -> Either Errors ()
 runEvalStmt line = case runState (runExceptT $ evalStatement line) M.empty of

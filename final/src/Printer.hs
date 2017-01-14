@@ -210,16 +210,16 @@ printExpr offset (Car e) = offset >>> ["(car ", s, ")"] where
 printExpr offset (Cdr e) = offset >>> ["(cdr ", s, ")"] where
     s = printExpr 0 e
 
-printStatement :: Int -> Bool -> Statement -> Text
+printStatement :: Int -> Statement -> Text
 printStatement offset (StatementList s) = case s of
     [] -> offset >>> ["skip"]
     (x:xs) -> offset >>> ["(begin", sss, ")"] where
         sss = printStatementList (offset + 2) s where
-            printStatementList offset'' s' = case s' of
+            printStatementList offset' s' = case s' of
                 [] -> ""
-                (x':xs') -> (offset',') >>> [b, bs] where
+                (x':xs') -> offset >>> [b, bs] where
                     b = "\r\n" `append` (printStatement offset' x')
-                    bs = printStatementList offset'' xs'
+                    bs = printStatementList offset' xs'
 printStatement offset Skip = offset >>> ["skip"]
 printStatement offset (Set t e) = offset >>> ["(set! ", t, "\r\n", c, ")"] where
     c = printExpr (offset + 6) e
@@ -242,11 +242,11 @@ printFunction :: Int -> Function -> Text
 printFunction offset (Def t ts ss) = offset >>> ["(define ", t, " (", " " `intercalate` ts, ")\r\n", bs] where
     bs = printStatement (offset + 2) ss
 
-prettyPrint :: String -> Text
-prettyPrint line = case parseOnly functionParser $ pack line of
+prettyPrint :: Text -> Text
+prettyPrint line = case parseOnly functionParser line of
     (Right function) -> printFunction 0 function
-    _ -> case parseOnly statementParser $ pack line of
+    _ -> case parseOnly statementParser line of
         (Right statement) -> printStatement 0 statement
-        _ -> case parseOnly exprParser $ pack line of
+        _ -> case parseOnly exprParser line of
             (Right expr) -> printExpr 0 expr
             _ -> "What?"
