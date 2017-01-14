@@ -20,7 +20,7 @@ genChar :: Gen Expr
 genChar = CharLit <$> elements (['A'..'Z'] ++ ['a'..'z'])
 
 genDouble :: Gen Expr
-genDouble = Number <$> choose (0, 100.0)
+genDouble = Number <$> choose (1, 100.0)
 
 genNil :: Gen Expr
 genNil = return Nil
@@ -64,4 +64,4 @@ genExpr limit = sized genN where
             elements [Not e, Car e, Cdr e, Vec t e, Function t [e], Lambda t e]
 
 prop_ShowParse :: Property
-prop_ShowParse = forAll (genExpr 6) $ \x -> parseOnly exprParser (pack $ show x) == Right x
+prop_ShowParse = forAll (genExpr 4) $ \x -> parseOnly exprParser (pack $ show x) == Right x
