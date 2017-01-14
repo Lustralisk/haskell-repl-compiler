@@ -3,7 +3,7 @@
 module Main where
 
 import Exec
-import Comp
+import Compiler.Comp
 
 main :: IO ()
 main = repl

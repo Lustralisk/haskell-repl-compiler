@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Comp where
+module Compiler.Comp where
 
 import Control.Applicative
 import Data.Functor
@@ -11,10 +11,7 @@ import qualified Data.Set as S
 
 import System.IO
 import Parser
-import Eval
-import Printer
-import Debug.Trace
-import CompExec
+import Compiler.CompExec
 
 getMemoSet :: AvailMemo
 getMemoSet = getMemoSet' 255 S.empty
