@@ -20,8 +20,8 @@ library
                      , EvalT
                      , Exec
                      , Printer
-                     , CompExec
-                     , Comp
+                     , Compiler.CompExec
+                     , Compiler.Comp
   build-depends:       base >= 4.7 && < 5
                      , text
                      , attoparsec
