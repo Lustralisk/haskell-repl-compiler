@@ -87,4 +87,5 @@ replT = do
             modify $ appendLine line
             replT
 
-runReplT = runStateT replT (M.empty, "", "", 0)
+runReplT :: IO ()
+runReplT = runStateT replT (M.empty, "", "", 0) >> return ()
