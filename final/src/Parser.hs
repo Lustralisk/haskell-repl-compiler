@@ -239,7 +239,19 @@ data Statement
     | MakeVector Text Expr
     | SetVector Text Expr Expr
     | Return Expr
-    deriving (Show, Eq)
+    deriving (Eq)
+
+instance Show Statement where
+    show (StatementList xs) = showBracket $ "begin" ++ show' xs where
+        show' [] = ""
+        show' (x:xs) = " " ++ show x ++ show' xs
+    show (Set v e) = showBracket $ "set! " ++ unpack v ++ " " ++ show e
+    show Skip = "skip"
+    show (If e s1 s2) = showBracket $ "if " ++ show e ++ " " ++ show s1 ++ " " ++ show s2
+    show (While e s) = showBracket $ "while " ++ show e ++ " " ++ show s
+    show (MakeVector t e) = showBracket $ "make-vector " ++ unpack t ++ " " ++ show e
+    show (SetVector t e1 e2) = showBracket $ "vector-set! " ++ unpack t ++ " " ++ show e1 ++ " " ++ show e2
+    show (Return e) = showBracket $ "return " ++ show e
 
 statementParser :: Parser Statement
 statementParser = statementListParser <|> setParser <|> skipParser <|>
@@ -314,7 +326,12 @@ returnParser = do
 
 data Function
     = Def Text [Text] Statement
-    deriving (Show, Eq)
+    deriving (Eq)
+
+instance Show Function where
+    show (Def t ts s) = showBracket $ "define (" ++ unpack t ++ show' ts ++ ") " ++ show s where
+        show' [] = ""
+        show' (x:xs) = " " ++ unpack x ++ show' xs
 
 functionParser :: Parser Function
 functionParser = defFuncParser

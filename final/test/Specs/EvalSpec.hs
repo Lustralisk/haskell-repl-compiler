@@ -27,6 +27,10 @@ test code = assertEnv env' where
 
 -- triple: (desciption, code, assert table)
 evalSpecs = packSpecs [
+        -- set
+        ("Set-test1", "(begin (set! abc 1.2) (set! def 3.2) (set! aaa (+ abc def)))",
+            [("abc", DoubleValue 1.2), ("def", DoubleValue 3.2), ("aaa", DoubleValue 4.4)]),
+        -- expr
         ("Expr-test1", "(set! a (+ 1 2))", [("a", DoubleValue 3)])
     ] where
         packSpecs [] = []
