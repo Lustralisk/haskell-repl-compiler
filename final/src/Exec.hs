@@ -83,7 +83,7 @@ replT = do
                         where
                             line' = concat [hist,  " ", line]
                             out = runResult line env
-        _ -> do 
+        _ -> do
             modify $ appendLine line
             replT
 
