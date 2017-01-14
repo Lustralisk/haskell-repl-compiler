@@ -119,15 +119,17 @@ compExprParser cpt (Let t e1 e2) = ((v2m, avm'', lbl''), linefinal) where
     (v2m, avm, lbl) = cpt
     (v2m', avm', lbl') = cpt'
     (v2m'', avm'', lbl'') = cpt''
-compExprParser cpt (Lambda t e) = (v2m, avm'', lbl'') where
+compExprParser cpt (Lambda t e) = (cptfinal, linev ++ linefunc ++ lineret ++ lineend) where
     (reg, cpt') = getMemo t DefaultValue cpt
     linev = "$$Lambda" ++ (show lbl') "\n"
     (cpt'' ,linefunc) = compExprParser (v2m', avm', lbl' + 1) e
-    -- lineend = "ret\n"
-    -- lineend = "mov A " ++ linev ++ "\n"
+    lineret = "move rlt A\nret\n"
+    lineend = "mov A " ++ linev ++ "\n"
     (v2m, avm, lbl) = cpt
     (v2m', avm', lbl') = cpt'
     (v2m'', avm'', lbl'') = cpt''
+    cpttmp = (v2m, avm'', lbl'')
+    cptfinal = getMemo (pack "A") (FuncValue [t] (Return e) cpt'') cpttmp
 
 
 compStatParser :: CompTable -> Statement -> (CompTable, String)
@@ -135,15 +137,22 @@ compStatParser cpt (StatementList s) = case s of
     [] -> (cpt, "")
     (x:xs) -> case x of
         (Return e) -> (cpt, line' ++ "mov rlt A\n") where
-          line' = (compExprParser cpt e)
+            line' = (compExprParser cpt e)
         _ -> (cpt'', line' ++ line'') where
             (cpt', line') = compStatParser cpt x
             (cpt'', line'') = compStatParser cpt' (StatementList xs)
-compStatParser cpt (Set t e) = (cpt', line1 ++ "mov " ++ reg ++ " A\n")
+compStatParser cpt (Set t e) = ((v2m'', avm', lbl'), line1 ++ "mov " ++ reg ++ " A\n")
     where
         line1 = compExprParser cpt e
         regtmp = findMemo t cpt
-        (reg, cpt') = if regtmp == "err" then getMemo t (DefaultValue) cpt else (regtmp, cpt)
+        (v2m, avm, lbl) = cpt
+        Just (num, val) = if M.lookup (pack "A") v2m == Nothing
+            then Just (-1, DefaultValue)
+            else M.lookup (pack "A") v2m
+        (reg, cpt') = if regtmp == "err" then getMemo t val cpt else (regtmp, cpt)
+        (v2m', avm', lbl') = cpt'
+        (num2 , val2) = M.lookup (pack reg) v2m'
+        v2m'' = M.insert (pack reg) (num2, val) v2m'
 compStatParser cpt Skip = (cpt, "")
 compStatParser (v2m, avm, lbl) (If e s1 s2) = (cpt'', linecond ++ jmpthen ++ lineelse ++ jmpend ++ labelthen ++ "\n" ++ linethen ++ labelend ++ "\n")
     where
