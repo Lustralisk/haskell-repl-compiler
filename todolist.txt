@@ -78,6 +78,7 @@ http://catamorph.de/documents/Transformers.pdf
 15. [done] check elem's type, namely construct function, in ListValue
 16. [done] show Double without e when < 0.1 ====> tricks: gen: anyChar -> a-z
                                                         double: 0-100 -> 1-100
+17. do return -> liftM
 
 ====================================================
     ______              __
