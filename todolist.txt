@@ -76,6 +76,7 @@ http://catamorph.de/documents/Transformers.pdf
 13. [done] finish lambda expression
 14. reduce (hist ++ " " ++ line) expression
 15. [done] check elem's type, namely construct function, in ListValue
+16. show Double without e when < 0.1
 
 ====================================================
     ______              __
