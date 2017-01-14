@@ -7,6 +7,8 @@ import Control.Monad
 import Data.Functor
 import Data.Text
 import Data.Attoparsec.Text
+import qualified Data.Vector as V
+
 
 data REG = A | B | RLT
         deriving (Show)
@@ -15,6 +17,7 @@ data IMM = IMMbool Bool
         | IMMnum Double
         | IMMchar Char
         | IMMstr Text
+        | IMMVector (V.Vector IMM)
 data VCC = VCC MEM Int
 data FLG = T | F | Gr | Eq | Ls | Cs
     deriving (Show)
@@ -31,7 +34,7 @@ data SRC = SRCreg REG
         | SRCimm IMM
 data CMD = AND DST SRC
         | OR DST SRC
-        | NOT DST SRC
+        | NOT DST
         | ADD DST SRC
         | SUB DST SRC
         | MUL DST SRC
@@ -46,8 +49,12 @@ data CMD = AND DST SRC
         | PUSH DST
         | POP DST
 
+data SEGITEM = LBLITEM Label
+        | CMDITEM CMD
+        | ENDITEM
+
 instance Show MEM where
-    show (R d) = "R" ++ show d
+    show (R d) = "r" ++ show d
 
 instance Show IMM where
     show (IMMbool b) = show b
@@ -76,10 +83,11 @@ instance Show SRC where
     show (SRCimm i) = show i
 
 showCmd str d s = str ++ " " ++ show d ++ " " ++ show s
+showCmd' str d = str ++ " " ++ show d
 instance Show CMD where
     show (AND d s) = showCmd "add" d s
     show (OR d s) = showCmd "or" d s
-    show (NOT d s) = showCmd "not" d s
+    show (NOT d) = showCmd' "not" d
     show (ADD d s) = showCmd "add" d s
     show (SUB d s) = showCmd "sub" d s
     show (MUL d s) = showCmd "mul" d s
@@ -102,7 +110,7 @@ regParser = rParser "A" A <|> rParser "B" B <|> rParser "RLT" RLT where
 
 memParser :: Parser MEM
 memParser = do
-    char 'R'
+    char 'r'
     addr <- decimal
     return (R addr)
 

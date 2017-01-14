@@ -1,9 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module CompExec where
+module Compiler.CompExec where
 
 import Data.Text
-import Eval
 import Data.Either
 import Data.Attoparsec.Text
 import qualified Data.Map as M
@@ -61,55 +60,74 @@ getPopLine fcpt (x: xs) = lineval ++ getPopLine fcpt xs where
     regtl = findMemo x fcpt
     lineval = "pop " ++ regtl ++ "\n"
 
-binOperatorBlock :: CompTable -> Expr -> Expr -> [Char] -> [Char]
-binOperatorBlock cpt e1 e2 mem = code1 ++ code2 ++ code3 ++ code4 ++ code5 ++ code6
-    where code1 = compExprParser cpt e1
+binOperatorBlock :: CompTable -> Expr -> Expr -> [Char] -> (CompTable, [Char])
+binOperatorBlock cpt e1 e2 mem = (cpt'', code1 ++ code2 ++ code3 ++ code4 ++ code5 ++ code6)
+    where (cpt', code1) = compExprParser cpt e1
           code2 = "push A\n"
-          code3 = compExprParser cpt e2
+          (cpt'', code3) = compExprParser cpt' e2
           code4 = "mov B A\n"
           code5 = "pop A\n"
           code6 = mem ++ " A B\n"
 
-cmpOperatorBlock :: CompTable -> Expr -> Expr -> [Char] -> [Char]
-cmpOperatorBlock cpt e1 e2 code7 = code1 ++ code2 ++ code3 ++ code4 ++ code5 ++ code6 ++ code7 ++ code8
-    where code1 = compExprParser cpt e1
+cmpOperatorBlock :: CompTable -> Expr -> Expr -> [Char] -> (CompTable, [Char])
+cmpOperatorBlock cpt e1 e2 code7 = (cpt'', code1 ++ code2 ++ code3 ++ code4 ++ code5 ++ code6 ++ code7 ++ code8)
+    where (cpt', code1) = compExprParser cpt e1
           code2 = "push A\n"
-          code3 = compExprParser cpt e2
+          (cpt'', code3) = compExprParser cpt' e2
           code4 = "mov B A\n"
           code5 = "pop A\n"
           code6 = "cmp A B\n"
           code8 = "mov A Cs\n"
 
-compExprParser :: CompTable -> Expr -> [Char]
+compExprParser :: CompTable -> Expr -> (CompTable, [Char])
 compExprParser (v2m, avm, lbl) (Variable t) = case M.lookup t v2m of
-    Just (i, v) -> "mov A " ++ "r" ++ (show i) ++ "\n"
-    _ -> "halt\n"
-compExprParser _ (Number n) = "mov A " ++ (show n) ++ "\n"
-compExprParser _ (CharLit c) = "mov A \'" ++ "c" ++ "\'\n"
-compExprParser _ (BoolLit False) = "mov A False" ++ "\n"
-compExprParser _ (BoolLit True) = "mov A True" ++ "\n"
+    Just (i, v) -> ((v2m, avm, lbl), "mov A " ++ "r" ++ (show i) ++ "\n")
+    _ -> ((v2m, avm, lbl), "halt\n")
+compExprParser cpt (Number n) = (cpt, "mov A " ++ (show n) ++ "\n")
+compExprParser cpt (CharLit c) = (cpt, "mov A \'" ++ "c" ++ "\'\n")
+compExprParser cpt (BoolLit False) = (cpt, "mov A False" ++ "\n")
+compExprParser cpt (BoolLit True) = (cpt, "mov A True" ++ "\n")
 compExprParser cpt (Add e1 e2) = binOperatorBlock cpt e1 e2 "add"
 compExprParser cpt (Sub e1 e2) = binOperatorBlock cpt e1 e2 "sub"
 compExprParser cpt (Mul e1 e2) = binOperatorBlock cpt e1 e2 "mul"
 compExprParser cpt (Div e1 e2) = binOperatorBlock cpt e1 e2 "div"
 compExprParser cpt (And e1 e2) = binOperatorBlock cpt e1 e2 "and"
 compExprParser cpt (Or e1 e2) = binOperatorBlock cpt e1 e2 "or"
-compExprParser cpt (Not e) = code1 ++ code2
-    where code1 = compExprParser cpt e
+compExprParser cpt (Not e) = (cpt', code1 ++ code2)
+    where (cpt', code1) = compExprParser cpt e
           code2 = "not A\n"
-compExprParser cpt (Eq e1 e2) = cmpOperatorBlock cpt e1 e2 "mov Cs Eq\n"
-compExprParser cpt (Lw e1 e2) = cmpOperatorBlock cpt e1 e2 "mov Cs Lw\n"
-compExprParser cpt (Gr e1 e2) = cmpOperatorBlock cpt e1 e2 "mov Cs Gr\n"
-compExprParser cpt (Le e1 e2) = cmpOperatorBlock cpt e1 e2 "mov Cs Lw\nor Cs Eq\n"
-compExprParser cpt (Ge e1 e2) = cmpOperatorBlock cpt e1 e2 "mov Cs Gr\nor Cs Eq\n"
+compExprParser cpt (Eq e1 e2) = (cpt, cmpOperatorBlock cpt e1 e2 "mov Cs Eq\n")
+compExprParser cpt (Lw e1 e2) = (cpt, cmpOperatorBlock cpt e1 e2 "mov Cs Lw\n")
+compExprParser cpt (Gr e1 e2) = (cpt, cmpOperatorBlock cpt e1 e2 "mov Cs Gr\n")
+compExprParser cpt (Le e1 e2) = (cpt, cmpOperatorBlock cpt e1 e2 "mov Cs Lw\nor Cs Eq\n")
+compExprParser cpt (Ge e1 e2) = (cpt, cmpOperatorBlock cpt e1 e2 "mov Cs Gr\nor Cs Eq\n")
 compExprParser (v2m, avm, lbl) (Function fname es) = case M.lookup fname v2m of
-    Just (_, funcv) -> lineall where
+    Just (_, funcv) -> ((v2m, avm, lbl), lineall) where
         lineassig = getVarCPT (v2m, avm, lbl) funcv es
         linecall = "call $$" ++ (unpack fname) ++ "\nmov A rlt\n"
         lineres = getPopLine fcpt (Prelude.reverse (t))
         lineall = lineassig ++ linecall ++ lineres
         (FuncValue t s fcpt) = funcv
     _ -> "halt\n"
+compExprParser cpt (Let t e1 e2) = ((v2m, avm'', lbl''), linefinal) where
+    linee1 = compExprParser cpt e1
+    (reg, cpt') = getMemo t DefaultValue cpt
+    lineval = "mov " ++ reg ++ " A\n"
+    (cpt'', linee2) = compExprParser cpt' e1
+    linefinal = linee1 ++ lineval ++ linee2
+    (v2m, avm, lbl) = cpt
+    (v2m', avm', lbl') = cpt'
+    (v2m'', avm'', lbl'') = cpt''
+compExprParser cpt (Lambda t e) = (v2m, avm'', lbl'') where
+    (reg, cpt') = getMemo t (DefaultValue) cpt
+    linev = "$$Lambda" ++ (show lbl') "\n"
+    (cpt'' ,linefunc) = compExprParser (v2m', avm', lbl' + 1) e
+    lineend = "ret\n"
+    lineend = "mov A " ++ linev ++ "\n"
+    (v2m, avm, lbl) = cpt
+    (v2m', avm', lbl') = cpt'
+    (v2m'', avm'', lbl'') = cpt''
+
 
 compStatParser :: CompTable -> Statement -> (CompTable, [Char])
 compStatParser cpt (StatementList s) = case s of
@@ -170,7 +188,7 @@ compFunctionParser cpt (Def t ts stat) = (cpt', linefunc) where
     (v2m, avm, lbl) = cpt
     (v2m', avm', lbl') = injectCPT cpt ts
     tmpcpt = (v2m', avm', lbl')
-    reccpt = updateCPT t (-1) (FuncValue ts stat reccpt) tmpcpt
+    reccpt = getMemo t (FuncValue ts stat reccpt) tmpcpt
     (v2m'', u1, u2) = reccpt
     ((v2m''', avm''', lbl'''), linebody) = compStatParser reccpt stat
     cpt' = (v2m'', avm''', lbl''')
