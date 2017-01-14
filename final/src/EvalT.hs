@@ -308,10 +308,12 @@ runEval line = case runState (runExceptT $ eval line) M.empty of
     (Right a, _) -> a
     (Left err, _) -> show err
 
+showEvalExpr :: Value -> String
+showEvalExpr (BoolValue b) = show b
+showEvalExpr (DoubleValue d) = show d
+showEvalExpr (CharValue c) = show c
+showEvalExpr (FunctionValue [t] s e) = show [t] ++ " " ++ show s ++ " " ++ show e
+showEvalExpr (ListValue l) = Prelude.concat [showEvalExpr li ++ ", " | li <- l]
+
 printEvalExpr :: Eval Value -> Eval String
-printEvalExpr = liftM showEvalExpr where
-    showEvalExpr (BoolValue b) = show b
-    showEvalExpr (DoubleValue d) = show d
-    showEvalExpr (CharValue c) = show c
-    showEvalExpr (FunctionValue [t] s e) = show [t] ++ " " ++ show s ++ " " ++ show e
-    showEvalExpr (ListValue l) = Prelude.concat [showEvalExpr li ++ ", " | li <- l]
+printEvalExpr = fmap showEvalExpr

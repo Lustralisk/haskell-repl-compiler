@@ -8,7 +8,8 @@ import Data.Either
 import Control.Monad
 import qualified Data.Map as M
 import System.IO
-import System.Console.Readline
+-- import System.Console.Readline
+import Control.Monad.State
 import Parser
 import EvalT
 import Printer
@@ -25,14 +26,14 @@ mainFunc = do
     mainFunc
 -}
 
-prettyPrinterLoop :: [[Char]] -> IO ()
+prettyPrinterLoop :: [String] -> IO ()
 prettyPrinterLoop ts = case ts of
     [] -> return ()
     (x:xs) -> do
         putStrLn x
         prettyPrinterLoop xs
 
-prettyPrinter :: [Char] -> IO ()
+prettyPrinter :: String -> IO ()
 prettyPrinter s = prettyPrinterLoop $ splitLn (prettyPrint s)
 
 -------------------------------------------------------------------------------
@@ -44,21 +45,21 @@ prettyPrinter s = prettyPrinterLoop $ splitLn (prettyPrint s)
 ---   Exec [Expr]
 ---   Define [Function]
 -------------------------------------------------------------------------------
-replLoop :: Env -> [Char] -> Int -> IO ()
-replLoop env hist cnt = do
+type Repl a = StateT Env IO a
+
+replLoop :: String -> Int -> Repl ()
+replLoop hist cnt = lift $ do
     putStr ">>> "
     hFlush stdout
     line <- getLine
     if newCount cnt line /= 0
         then replLoop env (hist ++ " " ++ line) $ newCount cnt line
     else
-        if line == ""
-            then return ()
-        else
+        unless (line == "") $
             case trace (hist ++ " " ++ line) (hist ++ " " ++ line) of
                 (' ':'s':'h':'o':'w':' ':s) -> case M.lookup (toText s) env of {- show cmd -}
                     Just v -> do
-                        putStrLn (s ++ " = " ++ (printEvalExpr $ Right v))
+                        putStrLn (s ++ " = " ++ showEvalExpr v)
                         replLoop env "" 0
                     Nothing -> do
                         putStrLn ("No such variable, " ++ s)
@@ -73,18 +74,10 @@ replLoop env hist cnt = do
                         replLoop env' "" 0
                     where
                         line' = hist ++ " " ++ line
-                        (env', out) = eval env line'
+                        (out, env') = eval env line'
 
+evalLine :: String -> Repl String
+evalLine env line =
 
 repl :: IO ()
 repl = replLoop M.empty "" 0
-
-readEvalPrintLoop :: IO ()
-readEvalPrintLoop = do
-    maybeLine <- readline "% "
-    case maybeLine of
-        Nothing -> return () -- EOF / control-d
-        Just "exit" -> return ()
-        Just line -> do addHistory line
-                        putStrLn $ "The user input: " ++ (show line)
-                        readEvalPrintLoop
