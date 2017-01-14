@@ -86,3 +86,5 @@ replT = do
         _ -> do 
             modify $ appendLine line
             replT
+
+runReplT = runStateT replT (M.empty, "", "", 0)
