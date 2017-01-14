@@ -63,5 +63,8 @@ genExpr limit = sized genN where
             t <- genVarName
             elements [Not e, Car e, Cdr e, Vec t e, Function t [e], Lambda t e]
 
+-- genStmt :: Int -> Gen Stmt
+-- genStmt
+
 prop_ShowParse :: Property
 prop_ShowParse = forAll (genExpr 4) $ \x -> parseOnly exprParser (pack $ show x) == Right x

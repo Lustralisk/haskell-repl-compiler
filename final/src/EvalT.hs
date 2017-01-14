@@ -298,9 +298,9 @@ runEvalExpr line = case runState (runExceptT $ evalExpr line) M.empty of
     (Right a, _) -> Right a
     (Left err, _) -> Left err
 
-runEvalStmt :: String -> Either Errors String
+runEvalStmt :: String -> Either Errors ()
 runEvalStmt line = case runState (runExceptT $ evalStatement line) M.empty of
-    (Right a, _) -> Right $ show a
+    (Right a, _) -> Right ()
     (Left err, _) -> Left err
 
 runEval :: String -> String
