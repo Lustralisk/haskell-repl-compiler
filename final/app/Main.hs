@@ -3,7 +3,8 @@
 module Main where
 
 import Exec
-import Comp
+import Compiler.Comp
 
 main :: IO ()
-main = translateLang "/Users/ocNflag/Desktop/in.txt" "/Users/ocNflag/Desktop/out.txt"
+main = repl
+-- main = translateLang "/Users/ocNflag/Desktop/in.txt" "/Users/ocNflag/Desktop/out.txt"
