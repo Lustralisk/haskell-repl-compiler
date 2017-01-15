@@ -253,7 +253,7 @@ evalStatementParser stmt@(While e s) = do
         (BoolValue False) -> return ()
 evalStatementParser (MakeVector t e) = do
     (DoubleValue v) <- evalExprParser e
-    let len = fromEnum v in insert t (ListValue [DoubleValue 0 | i <- [1..len]])
+    let len = fromEnum v in insert t (ListValue [Undefined | i <- [1..len]])
 evalStatementParser stmt@(SetVector t e1 e2) = do
     v <- search t
     case v of

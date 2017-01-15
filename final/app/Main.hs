@@ -3,7 +3,8 @@
 module Main where
 
 import Exec
-import Compiler.Comp
+import System.IO
+import Compiler.CompExec
 import Compiler.IRExec
 import System.Environment
 
@@ -41,5 +42,12 @@ readMod _ = Nothing
 -- --main = runReplT
 -- main = execWrapper "/Users/lustralisk/Desktop/out.txt"
 -- >>>>>>> ffda66adad8d9675f4eb2e94769864cc3cbf6909
+main :: IO ()
+--main = do
+--	cmd <- getLine
+--	case words cmd of
+--		["-i", file1, "-o", file2] ->
+--		["-t", file1, "-o", file2] ->
+--		["-repl"] ->
 --main = runReplT
 main = execWrapper "/Users/dycraft/Desktop/out.txt"
