@@ -13,7 +13,8 @@ import Parser
 
 
 parserTests = [("Expr: show . parse == id", quickCheck prop_ShowParseExpr),
-                ("Stmt: show . parse == id", quickCheck prop_ShowParseStmt)]
+                ("Stmt: show . parse == id", quickCheck prop_ShowParseStmt),
+                ("Func: show . parse == id", quickCheck prop_ShowParseFunc)]
 
 genVarName :: Gen Text
 genVarName = pack <$> (return "aaa" <++> listOf1 (elements ['a'..'z']))

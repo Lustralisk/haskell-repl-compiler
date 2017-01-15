@@ -6,7 +6,7 @@ import Exec
 import System.Environment
 import Compiler.CompExec
 import Compiler.IRExec
-
+import System.Environment
 
 main :: IO ()
 main = do
