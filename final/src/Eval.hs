@@ -35,7 +35,11 @@ instance Show EvalError where
 type EvalMonad = Either EvalError
 
 -- Type Enum
-data ValueType = BoolType | CharType | DoubleType | FunctionType | ListType
+data ValueType = BoolType
+               | CharType 
+               | DoubleType 
+               | FunctionType 
+               | ListType
 
 -- Error Util
 ---- Note: could simplify by (<|>)?

@@ -3,7 +3,7 @@
 module Main where
 
 import Exec
-import Compiler.Comp
+import Compiler.CompExec
 import Compiler.IRExec
 
 

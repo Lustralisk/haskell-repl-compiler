@@ -26,8 +26,7 @@ initialEnvLoop inh env seg = do
         then return (env, seg)
     else do
         curline <- hGetLine inh
-        initialEnvLoop inh env' seg' where
-            (env', seg') = envParse env seg curline
+        let (env', seg') = envParse env seg curline in initialEnvLoop inh env' seg'
 
 envParse :: VMEnv -> CodeSeg -> String -> (VMEnv, CodeSeg)
 envParse env seg line = case parseOnly lblParser $ pack line of
