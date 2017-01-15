@@ -22,3 +22,13 @@ type CodeSeg = [SEGITEM]
 type CallStack = [Int]
 
 type VMEnv = (MTable, LblTable, ValueStack, Layer, EIP, CallStack)
+
+initMTable :: VMEnv -> VMEnv
+initMTable (mt, lblt, vs, layer, eip, cstk) = (mt', lblt, vs, layer, eip, cstk) where
+    listMem1 = ["Eq", "Lw", "Gr", "Cs", "T", "F", "A", "B", "rlt"]
+    listMem2 = ["r" ++ (show c) | c <- [0, 1 .. 255]]
+    listMem3 = listMem1 ++ listMem2
+    mt' = foldl insertMT M.empty listMem3
+
+insertMT :: MTable -> String -> MTable
+insertMT mt str = M.insert str (IMMnum 0) mt
