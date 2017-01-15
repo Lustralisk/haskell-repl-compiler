@@ -9,24 +9,37 @@ import Data.Attoparsec.Text
 import qualified Data.Vector as V
 import qualified Data.Map as M
 import qualified Data.Set as S
+import Control.Monad.State
+import Control.Monad.Trans
+import Control.Monad
 import Compiler.IRParser
 import Compiler.IR
 
-execWrapper :: String -> IO()
+type ExecVM a = StateT (VMEnv, CodeSeg) IO a
+
+io :: IO a -> StateT (VMEnv, CodeSeg) IO a
+io = liftIO
+
+execWrapper :: String -> IO ()
 execWrapper inp = do
     inh <- openFile inp ReadMode
-    (initEnv, codeSeg) <- initialEnvLoop inh (M.empty, M.empty, [], 0, 0, []) [ENDITEM]
-    -- let x = execIRLoop initEnv codeSeg
+    --(initEnv, codeSeg) <- runStateT initialEnvLoop inh ((M.empty, M.empty, [], 0, 0, []) [ENDITEM])
+    runStateT (initialEnvLoop inh) ((M.empty, M.empty, [], 0, 0, []), [ENDITEM]) >> return ()
+    ---- let x = execIRLoop initEnv codeSeg
     hClose inh
 
-initialEnvLoop :: Handle -> VMEnv -> CodeSeg -> IO ((VMEnv, CodeSeg))
-initialEnvLoop inh env seg = do
-    isEof <- hIsEOF inh
-    if isEof
-        then return (env, seg)
+initialEnvLoop :: Handle -> ExecVM ()
+initialEnvLoop inh = do
+    (env, seg) <- get
+    isEof <- io $ hIsEOF inh
+    if isEof        
+    then do
+        put (env, seg)
+        return ()
     else do
-        curline <- hGetLine inh
-        let (env', seg') = envParse env seg curline in initialEnvLoop inh env' seg'
+        curline <- io $ hGetLine inh
+        put $ envParse env seg curline
+        initialEnvLoop inh
 
 envParse :: VMEnv -> CodeSeg -> String -> (VMEnv, CodeSeg)
 envParse env seg line = case parseOnly lblParser $ pack line of

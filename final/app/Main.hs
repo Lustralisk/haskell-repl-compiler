@@ -8,5 +8,5 @@ import Compiler.IRExec
 
 
 main :: IO ()
--- main = runReplT
-main = execWrapper "/Users/ocNflag/Desktop/out.txt"
+--main = runReplT
+main = execWrapper "/Users/lustralisk/Desktop/out.txt"

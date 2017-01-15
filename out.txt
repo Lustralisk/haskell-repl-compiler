@@ -1,0 +1,9 @@
+$$foo
+mov A r0
+push A
+mov A r1
+mov B A
+pop A
+add A B
+mov rlt A
+ret
