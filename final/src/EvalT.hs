@@ -112,6 +112,20 @@ evalExprParser expr@(Function t es) = do
                 Undefined -> throwError $ NotFoundError ("Variable " `append` t) expr
                 _ -> return v'
         _ -> throwError $ NotFoundError ("Function " `append` t) expr
+evalExprParser expr@(LambdaCall e1 e2) = do
+    r1 <- evalExprParser e1
+    case r1 of
+        (FunctionValue ts stmt fenv) -> do
+            env <- get
+            put fenv
+            inject env "anonymous" expr ts [e2]
+            evalStatementParser stmt
+            v <- search "$$result$$"
+            put env
+            case v of
+                Undefined -> throwError $ NotFoundError "Variable " expr
+                _ -> return v
+        _ -> throwError $ NotFoundError "Lambda " expr
 evalExprParser (Let t e1 e2) = do
     env <- get
     v1 <- evalExprParser e1

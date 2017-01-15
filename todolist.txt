@@ -166,3 +166,11 @@ Left "Failed reading: empty" 					-- parseOnly error report
 
 06.
 (define (foo x) (if (> x 0) (begin (return (* x (foo (- x 1))))) (return 1)))
+
+
+(lambda yy y (lambda z (+ z y)))
+(lambda xx x (+ 1 x))
+
+((yy xx) 2)
+
+((yy 2) 3) => ((lambda z (+ z 2)) 3) => 5

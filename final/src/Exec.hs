@@ -66,23 +66,24 @@ replT = do
                     replT
                 else
                     if line =| ":t" then do
-                        put (env, "", "", 0)
+                        io $ prettyPrinter hist
+                        put (env, "", hist, 0)
                         replT
                     else case out of
                         (Right "", env') -> do
-                            put (env', "", "", 0)
+                            put (env', "", line', 0)
                             replT
                         (Right s, env') -> do
                             io $ putStrLn $ pack s
-                            put (env', "", "", 0)
+                            put (env', "", line', 0)
                             replT
                         (Left err, _) -> do
                             io $ putStrLn $ pack $ show (err::Errors)
                             put (env, "", "", 0)
                             replT
                         where
-                            line' = concat [hist,  " ", line]
-                            out = runResult line env
+                            line' = concat [last,  " ", line]
+                            out = runResult line' env
         _ -> do 
             modify $ appendLine line
             replT
