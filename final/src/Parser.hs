@@ -207,7 +207,7 @@ functionCallParser :: Parser Expr
 functionCallParser = do
     lexeme $ char '('
     vari <- variNameParser
-    exprs <- many1 exprParser
+    exprs <- many exprParser
     lexeme $ char ')'
     return (Function (pack vari) exprs)
 
@@ -354,3 +354,12 @@ defFuncParser = do
     stat <- statementParser
     lexeme $ char ')'
     return (Def (pack func) (Prelude.map pack varis) stat)
+
+data Program
+    = Prog [Function]
+    deriving (Eq)
+
+programParser :: Parser Program
+programParser = do
+    funcs <- many1 functionParser
+    return (Prog funcs)
