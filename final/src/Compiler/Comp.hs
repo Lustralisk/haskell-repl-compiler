@@ -84,6 +84,11 @@ compExprParser :: CompTable -> Expr -> (CompTable, String)
 compExprParser (v2m, avm, lbl) (Variable t) = case M.lookup t v2m of
     Just (i, v) -> ((v2m, avm, lbl), "mov A " ++ "r" ++ (show i) ++ "\n")
     _ -> ((v2m, avm, lbl), "halt\n")
+compExprParser (v2m, avm, lbl) (Vec t e) = case M.lookup t v2m of
+    Just (i, v) -> ((v2m, avm, lbl), line1 ++ line2 ++ "mov A " ++ "r" ++ (show i) ++ "[B]\n") where
+        (cpt', line1) = compExprParser (v2m, avm, lbl) e
+        line2 = "mov B A \n"
+    _ -> ((v2m, avm, lbl), "halt\n")
 compExprParser cpt (Number n) = (cpt, "mov A " ++ (show n) ++ "\n")
 compExprParser cpt (CharLit c) = (cpt, "mov A \'" ++ "c" ++ "\'\n")
 compExprParser cpt (BoolLit False) = (cpt, "mov A False" ++ "\n")
@@ -241,6 +246,14 @@ compFunctionParser cpt (Def t ts stat) = (cpt', linefunc) where
     linefinal = "ret\n"
     linefunc = lineTag ++ linebody ++ linefinal
 
+compProgramParser :: CompTable -> Program -> (CompTable, String)
+compProgramParser cpt (Prog funcs) = case funcs of
+    [] -> (cpt, "")
+    (f:fs) -> (cpt'', line ++ line') where
+        (cpt', line) = compFunctionParser cpt f
+        (cpt'', line') = compProgramParser cpt' (Prog fs)
+
+
 compExpr :: CompTable -> String -> (CompTable, String)
 compExpr cpt t = let (Right expr) = (parseOnly exprParser (pack t)) in compExprParser cpt expr
 
@@ -249,8 +262,8 @@ compStat cpt t = compStatParser cpt statement where
     (Right statement) = parseOnly statementParser $ pack t
 
 comp :: CompTable -> String -> (CompTable, String)
-comp cpt line = case parseOnly functionParser $ pack line of
-    (Right function) -> compFunctionParser cpt function
+comp cpt line = case parseOnly programParser $ pack line of
+    (Right program) -> compProgramParser cpt program
     _ -> case parseOnly statementParser $ pack line of
         (Right statement) -> (compStatParser cpt statement)
         _ -> compExpr cpt line

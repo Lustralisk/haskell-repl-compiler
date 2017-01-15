@@ -228,6 +228,22 @@ evalExprParser expr@(Ge e1 e2) = do
         (DoubleValue v1, DoubleValue v2) -> return $ BoolValue (v1 >= v2)
         (DoubleValue _, _) -> throwError $ TypeError r2 expr
         _ -> throwError $ TypeError r1 expr
+evalExprParser Nil = return $ ListValue []
+evalExprParser expr@(Cons e1 e2) = do
+    r <- evalExprParser e1
+    (ListValue l) <- evalExprParser e2
+    return $ ListValue (r:l)
+evalExprParser expr@(Car e) = do
+    l <- evalExprParser e
+    case l of
+        (ListValue []) -> return Undefined
+        (ListValue (x:xs)) -> return x
+evalExprParser expr@(Cdr e) = do
+    l <- evalExprParser e
+    case l of
+        (ListValue []) -> return Undefined
+        (ListValue (x:xs)) -> return $ ListValue xs
+
 
 evalStatementParser :: Statement -> Eval ()
 evalStatementParser (StatementList []) = return ()
@@ -354,7 +370,8 @@ showEvalExpr (DoubleValue d) = show d
 showEvalExpr (CharValue c) = show c
 showEvalExpr (FunctionValue [t] s e) = show [t] ++ " " ++ show s ++ " " ++ show e
 showEvalExpr Undefined = "Undefined"
-showEvalExpr (ListValue l) = Prelude.concat [showEvalExpr li ++ ", " | li <- l]
+showEvalExpr (ListValue l) = "[" ++ (unpack $ intercalate (pack ", ") ls) ++ "]" where
+    ls = [pack (showEvalExpr li) | li <- l]
 
 printEvalExpr :: Eval Value -> Eval String
 printEvalExpr = fmap showEvalExpr
