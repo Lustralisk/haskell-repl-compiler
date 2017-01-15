@@ -252,18 +252,26 @@ evalStatementParser stmt@(While e s) = do
                 _ -> return ()
         (BoolValue False) -> return ()
 evalStatementParser (MakeVector t e) = do
-    (DoubleValue v) <- evalExprParser e
-    let len = fromEnum v in insert t (ListValue [Undefined | i <- [1..len]])
-evalStatementParser stmt@(SetVector t e1 e2) = do
-    v <- search t
+    v <- evalExprParser e
     case v of
+        (DoubleValue n) -> if isInt n
+            then let len = fromEnum n in if n > 0
+                then insert t (ListValue [Undefined | i <- [1..len]])
+                else throwError $ OutOfIndexError v e
+            else throwError $ TypeError (DoubleValue n) e
+        vi -> throwError $ TypeError vi e
+evalStatementParser stmt@(SetVector t e1 e2) = do
+    lv <- search t
+    case lv of
         (ListValue v) -> do
             value <- evalExprParser e1
             case value of
                 (DoubleValue i') -> do
                     v' <- evalExprParser e2
                     if isInt i'
-                    then let i = fromEnum i' in insert t (ListValue (Prelude.take i v ++ [v'] ++ Prelude.drop (i + 1) v))
+                    then let i = fromEnum i' in if (i < Prelude.length v) && (i >= 0)
+                        then insert t (ListValue (Prelude.take i v ++ [v'] ++ Prelude.drop (i + 1) v))
+                        else throwError $ OutOfIndexError value e1
                     else throwError $ ValueError v' e2
                 _ -> throwError $ TypeError value e1
         _ -> throwError $ NotFoundError t (Variable t)
