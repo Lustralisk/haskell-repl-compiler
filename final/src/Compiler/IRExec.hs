@@ -148,18 +148,23 @@ execCMD (POP dst) env = (updateEIP env') where
 
 execSRC :: SRC -> VMEnv -> IMM
 execSRC (SRCimm e) env = e
-execSRC (SRCvcc (VCC memo d)) env = list V.! d where
+execSRC (SRCvcc (VCC memo r)) env = list V.! (fromEnum d) where
     (mt, lblt, vs, layer, eip, cstk) = env
     Just (IMMVector list) = M.lookup (show memo) mt
+    Just (IMMnum d) = M.lookup (show r) mt
+execSRC (SRCvcc (VEC r)) env = (IMMVector (V.replicate (fromEnum d) (IMMnum 0.0))) where
+    (mt, lblt, vs, layer, eip, cstk) = env
+    Just (IMMnum d) = M.lookup (show r) mt
 execSRC (SRClbl l) env = IMMlabel l
 execSRC a env = imm where
     (mt, lblt, vs, layer, eip, cstk) = env
     Just imm = M.lookup (show a) mt
 
 execDST :: DST -> VMEnv -> IMM
-execDST (DSTvcc (VCC memo d)) env = list V.! d where
+execDST (DSTvcc (VCC memo d)) env = list V.! (fromEnum num) where
     (mt, lblt, vs, layer, eip, cstk) = env
     Just (IMMVector list) = M.lookup (show memo) mt
+    Just (IMMnum num) = M.lookup (show d) mt
 execDST a env = imm where
     (mt, lblt, vs, layer, eip, cstk) = env
     Just imm = M.lookup (show a) mt
