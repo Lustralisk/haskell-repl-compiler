@@ -57,7 +57,7 @@ replT :: Repl ()
 replT = do
     io $ putStr ">>> "
     io $ hFlush stdout
-    line <- io $ getLine
+    line <- io getLine
     (env, last, hist, cnt) <- get
     case newCount cnt line of
         0 -> unless (line == ":q") $
@@ -87,4 +87,5 @@ replT = do
             modify $ appendLine line
             replT
 
-runReplT = runStateT replT (M.empty, "", "", 0)
+runReplT :: IO ()
+runReplT = void $ runStateT replT (M.empty, "", "", 0)

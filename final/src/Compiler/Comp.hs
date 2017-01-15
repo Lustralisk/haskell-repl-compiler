@@ -35,17 +35,14 @@ executeLoop cpt hist cnt inh ouh = do
         then return ()
     else do
         line <- hGetLine inh
-        if (newCount cnt line) /= 0
-            then executeLoop cpt (hist ++ " " ++ line) (newCount cnt line) inh ouh
-        else
-            case trace (hist ++ " " ++ line) (hist ++ " " ++ line) of
-                _ -> case out of
-                    "" -> executeLoop cpt' "" 0 inh ouh
-                    _ -> do
-                        putStrLn line'
-                        --print cpt'
-                        hPutStr ouh out
-                        executeLoop cpt' "" 0 inh ouh
-                    where
-                        line' = hist ++ " " ++ line
-                        (cpt', out) = comp cpt line'
+        case (hist ++ " " ++ line) of
+            _ -> case out of
+                "" -> executeLoop cpt' "" 0 inh ouh
+                _ -> do
+                    putStrLn line'
+                    --print cpt'
+                    hPutStr ouh out
+                    executeLoop cpt' "" 0 inh ouh
+                where
+                    line' = hist ++ " " ++ line
+                    (cpt', out) = comp cpt line'
