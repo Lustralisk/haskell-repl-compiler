@@ -230,6 +230,22 @@ evalExprParser expr@(Ge e1 e2) = do
         (DoubleValue v1, DoubleValue v2) -> return $ BoolValue (v1 >= v2)
         (DoubleValue _, _) -> throwError $ TypeError r2 expr
         _ -> throwError $ TypeError r1 expr
+evalExprParser Nil = return $ ListValue []
+evalExprParser expr@(Cons e1 e2) = do
+    r <- evalExprParser e1
+    (ListValue l) <- evalExprParser e2
+    return $ ListValue (r:l)
+evalExprParser expr@(Car e) = do
+    l <- evalExprParser e
+    case l of
+        (ListValue []) -> return Undefined
+        (ListValue (x:xs)) -> return x
+evalExprParser expr@(Cdr e) = do
+    l <- evalExprParser e
+    case l of
+        (ListValue []) -> return Undefined
+        (ListValue (x:xs)) -> return $ ListValue xs
+
 
 evalStatementParser :: Statement -> Eval ()
 evalStatementParser (StatementList []) = return ()
