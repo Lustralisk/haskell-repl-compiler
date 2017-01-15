@@ -54,6 +54,7 @@ data CMD = AND DST SRC
 data SEGITEM = LBLITEM LBL
         | CMDITEM CMD
         | ENDITEM
+        deriving (Show)
 
 instance Show MEM where
     show (R d) = "r" ++ show d
@@ -105,7 +106,7 @@ instance Show CMD where
     show (POP d) = "pop " ++ show d
 
 regParser :: Parser REG
-regParser = rParser "A" A <|> rParser "B" B <|> rParser "RLT" RLT where
+regParser = rParser "A" A <|> rParser "B" B <|> rParser "rlt" RLT where
     rParser token op = do
         string token
         return op

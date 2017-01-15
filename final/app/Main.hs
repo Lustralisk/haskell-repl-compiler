@@ -9,4 +9,4 @@ import Compiler.IRExec
 
 main :: IO ()
 --main = runReplT
-main = execWrapper "/Users/lustralisk/Desktop/out.txt"
+main = execWrapper "/Users/ocNflag/Desktop/out.txt"

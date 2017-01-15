@@ -24,16 +24,17 @@ execWrapper :: String -> IO ()
 execWrapper inp = do
     inh <- openFile inp ReadMode
     --(initEnv, codeSeg) <- runStateT initialEnvLoop inh ((M.empty, M.empty, [], 0, 0, []) [ENDITEM])
-    (initEnv, codeSeg) <- runStateT (initialEnvLoop inh) ((M.empty, M.empty, [], 0, 0, []), [ENDITEM])
-    
-    ---- let x = execIRLoop initEnv codeSeg
+    (_, (initEnv, codeSeg)) <- runStateT (initialEnvLoop inh) ((M.empty, M.empty, [], 0, 0, []), [])
+    print (initEnv, codeSeg)
+    let initEnv' = initMTable initEnv in print (execIRLoop initEnv' codeSeg)
+    -- print (initEnv', codeSeg)
     hClose inh
 
 initialEnvLoop :: Handle -> ExecVM ()
 initialEnvLoop inh = do
     (env, seg) <- get
     isEof <- io $ hIsEOF inh
-    if isEof        
+    if isEof
     then do
         put (env, seg)
         return ()
