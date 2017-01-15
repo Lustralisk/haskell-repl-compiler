@@ -38,6 +38,7 @@ data Errors = ParseError Text
 instance Show Errors where
     show (ParseError msg) = "ParseError: " ++ unpack msg
     show (TypeError value expr) = "TypeError: " ++ show value ++ "\nIn the expression: " ++ show expr
+    show (ConditionError value expr) = "ConditionError: " ++ show value ++ "\nIn the expression: " ++ show expr
     show (NotFoundError var expr) = "NotFoundError: " ++ unpack var ++ "\nIn the expression: " ++ show expr
     show (ValueError value expr) = "ValueError: " ++ show value ++ "\nIn the expression: " ++ show expr
     show (FuncTypeError t expr) = "FunctionTypeError: " ++ unpack t ++ "\nIn the expression: " ++ show expr
