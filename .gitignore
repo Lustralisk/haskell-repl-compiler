@@ -17,5 +17,6 @@ cabal.sandbox.config
 *.eventlog
 .stack-work/
 cabal.project.local
+*.tix
 
 .DS_Store
