@@ -19,7 +19,7 @@ data IMM = IMMbool Bool
         | IMMstr Text
         | IMMVector (V.Vector IMM)
         | IMMlabel LBL
-data VCC = VCC MEM Int
+data VCC = VCCi MEM Int | VCCr MEM REG | VECi Int | VECr REG
 data FLG = Gr | Eq | Ls | Cs
     deriving (Show)
 data LBL = LBLA Int
@@ -68,7 +68,10 @@ instance Show IMM where
     show (IMMlabel l) = show l
 
 instance Show VCC where
-    show (VCC m d) = show m ++ "[" ++ show d ++ "]"
+    show (VCCi m d) = show m ++ "[" ++ show d ++ "]"
+    show (VCCr m d) = show m ++ "[" ++ show d ++ "]"
+    show (VECi d) = "vec" ++ "[" ++ show d ++ "]"
+    show (VECr d) = "vec" ++ "[" ++ show d ++ "]"
 
 instance Show LBL where
     show (LBLA d) = "$$" ++ show d
@@ -132,12 +135,31 @@ immParser = iParser lblParser IMMlabel <|> bParser "True" True <|> bParser "Fals
                     return (IMMbool b)
 
 vccParser :: Parser VCC
-vccParser = do
-    m <- memParser
-    char '['
-    d <- decimal
-    char ']'
-    return (VCC m d)
+vccParser = vcciParser <|> vccrParser <|> veciParser <|> vecrParser where
+    vcciParser = do
+        m <- memParser
+        char '['
+        d <- decimal
+        char ']'
+        return (VCCi m d)
+    vccrParser = do
+        m <- memParser
+        char '['
+        d <- regParser
+        char ']'
+        return (VCCr m d)
+    veciParser = do
+        string "vec"
+        char '['
+        d <- decimal
+        char ']'
+        return (VECi d)
+    vecrParser = do
+        string "vec"
+        char '['
+        d <- regParser
+        char ']'
+        return (VECr d)
 
 flgParser :: Parser FLG
 flgParser = fParser "Gr" Gr <|> fParser "Eq" Eq <|> fParser "Ls" Ls <|> fParser "Cs" Cs where
