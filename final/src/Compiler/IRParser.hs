@@ -20,7 +20,7 @@ data IMM = IMMbool Bool
         | IMMVector (V.Vector IMM)
         | IMMlabel LBL
 data VCC = VCC MEM Int
-data FLG = T | F | Gr | Eq | Ls | Cs
+data FLG = Gr | Eq | Ls | Cs
     deriving (Show)
 data LBL = LBLA Int
             | LBLF Text
@@ -140,23 +140,21 @@ vccParser = do
     return (VCC m d)
 
 flgParser :: Parser FLG
-flgParser = fParser "T" T <|> fParser "F" F <|> fParser "Gr" Gr <|>
-            fParser "Eq" Eq <|> fParser "Ls" Ls <|> fParser "Cs" Cs where
+flgParser = fParser "Gr" Gr <|> fParser "Eq" Eq <|> fParser "Ls" Ls <|> fParser "Cs" Cs where
                 fParser token op = do
                     string token
                     return op
 
 dstParser :: Parser DST
-dstParser = dParser regParser DSTreg <|> dParser vccParser DSTvcc <|>
-            dParser memParser DSTmem <|> dParser flgParser DSTflg where
+dstParser = dParser flgParser DSTflg <|> dParser regParser DSTreg <|>
+            dParser memParser DSTmem <|> dParser vccParser DSTvcc where
                 dParser parser op = do
                     v <- parser
                     return (op v)
 
 srcParser :: Parser SRC
-srcParser = sParser lblParser SRClbl <|> sParser regParser SRCreg <|> sParser vccParser SRCvcc <|>
-            sParser memParser SRCmem <|> sParser immParser SRCimm <|>
-            sParser flgParser SRCflg where
+srcParser = sParser flgParser SRCflg <|> sParser regParser SRCreg <|> sParser lblParser SRClbl <|>
+            sParser memParser SRCmem <|> sParser immParser SRCimm <|> sParser vccParser SRCvcc where
                 sParser parser op = do
                     v <- parser
                     return (op v)
