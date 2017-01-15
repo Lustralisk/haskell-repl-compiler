@@ -10,7 +10,7 @@ import Control.Monad.Except
 import Control.Monad.State
 import Parser
 import Printer
-import EvalT
+import Eval
 
 runCode :: Text -> Env -> Env
 runCode code env = env' where

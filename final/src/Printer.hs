@@ -19,7 +19,8 @@ inden n = Data.Text.replicate n " "
 
 printExpr :: Int -> Bool -> Expr -> Text
 printExpr offset style (Variable t) = (offset, style) >>> [t]
-printExpr offset style (Vec t e) = (offset, style) >>> ["(vector-ref ", t, (printExpr offset True e), ")"]
+printExpr offset style (Vec t e) = (offset, style) >>> ["(vector-ref ", t, " ", s, ")"] where
+    s = printExpr (offset + 13 + Data.Text.length t) False e
 printExpr offset style (Number e) = (offset, style) >>> [pack (show e)]
 printExpr offset style (CharLit e) = (offset, style) >>> ["\'", pack [e], "\'"]
 printExpr offset style (BoolLit True) = (offset, style) >>> ["True"]
@@ -240,23 +241,26 @@ printStatement offset style (If e s1 s2) = (offset, style) >>> ["(if ", c, "\r\n
     b1 = printStatement (offset + 4) True s1
     b2 = printStatement (offset + 2) True s2
 printStatement offset style (While e s) = (offset, style) >>> ["(while ", c, "\r\n", b, ")"] where
-    c = printExpr offset False e
+    c = printExpr (offset + 7) False e
     b = printStatement (offset + 2) True s
 printStatement offset style (MakeVector t e) = (offset, style) >>> ["(make-vector ", t, "\r\n", c, ")"] where
     c = printExpr (offset + 13) True e
 printStatement offset style (SetVector t e1 e2) = (offset, style) >>> ["(vector-set! ", t, "\r\n", c1, "\r\n", c2, ")"] where
-    c1 = printExpr (offset + 13) False e1
+    c1 = printExpr (offset + 13) True e1
     c2 = printExpr (offset + 13) True e2
 printStatement offset style (Return e) = (offset, style) >>> ["(return ", c, ")"] where
     c = printExpr (offset + 8) False e
 
 printFunction :: Int -> Bool -> Function -> Text
-printFunction offset style (Def t ts ss) = (offset, style) >>> ["(define ", t, " (", " " `intercalate` ts, ")\r\n", bs] where
+printFunction offset style (Def t ts ss) = (offset, style) >>> ["(define (", t, " ", " " `intercalate` ts, ")\r\n", bs, "\r\n"] where
     bs = printStatement (offset + 2) True ss
 
+printProgram :: Int -> Bool -> Program -> Text
+printProgram offset style (Prog funcs) = (0, True) >>> [printFunction 0 True func | func <- funcs]
+
 prettyPrint :: Text -> Text
-prettyPrint line = case parseOnly functionParser line of
-    (Right function) -> printFunction 0 True function
+prettyPrint line = case parseOnly programParser line of
+    (Right program) -> printProgram 0 True program
     _ -> case parseOnly statementParser line of
         (Right statement) -> printStatement 0 True statement
         _ -> case parseOnly exprParser line of
