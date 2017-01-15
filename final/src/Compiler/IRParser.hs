@@ -18,6 +18,7 @@ data IMM = IMMbool Bool
         | IMMchar Char
         | IMMstr Text
         | IMMVector (V.Vector IMM)
+        | IMMlabel LBL
 data VCC = VCC MEM Int
 data FLG = T | F | Gr | Eq | Ls | Cs
     deriving (Show)
@@ -41,7 +42,7 @@ data CMD = AND DST SRC
         | MUL DST SRC
         | DIV DST SRC
         | CMP DST SRC
-        | JMP DST SRC
+        | JMP SRC SRC
         | MOV DST SRC
         | HEAD DST SRC
         | TAIL DST SRC
@@ -54,6 +55,7 @@ data CMD = AND DST SRC
 data SEGITEM = LBLITEM LBL
         | CMDITEM CMD
         | ENDITEM
+        deriving (Show)
 
 instance Show MEM where
     show (R d) = "r" ++ show d
@@ -63,6 +65,7 @@ instance Show IMM where
     show (IMMnum d) = show d
     show (IMMchar c) = show c
     show (IMMstr s) = unpack s
+    show (IMMlabel l) = show l
 
 instance Show VCC where
     show (VCC m d) = show m ++ "[" ++ show d ++ "]"
@@ -83,6 +86,7 @@ instance Show SRC where
     show (SRCvcc v) = show v
     show (SRCflg f) = show f
     show (SRCimm i) = show i
+    show (SRClbl l) = show l
 
 showCmd str d s = str ++ " " ++ show d ++ " " ++ show s
 showCmd' str d = str ++ " " ++ show d
@@ -105,7 +109,7 @@ instance Show CMD where
     show (POP d) = "pop " ++ show d
 
 regParser :: Parser REG
-regParser = rParser "A" A <|> rParser "B" B <|> rParser "RLT" RLT where
+regParser = rParser "A" A <|> rParser "B" B <|> rParser "rlt" RLT where
     rParser token op = do
         string token
         return op
@@ -117,7 +121,7 @@ memParser = do
     return (R addr)
 
 immParser :: Parser IMM
-immParser = bParser "True" True <|> bParser "False" False <|>
+immParser = iParser lblParser IMMlabel <|> bParser "True" True <|> bParser "False" False <|>
             iParser double IMMnum <|> iParser anyChar IMMchar <|>
             iParser takeText IMMstr where
                 iParser parser op = do
@@ -150,9 +154,9 @@ dstParser = dParser regParser DSTreg <|> dParser vccParser DSTvcc <|>
                     return (op v)
 
 srcParser :: Parser SRC
-srcParser = sParser regParser SRCreg <|> sParser vccParser SRCvcc <|>
+srcParser = sParser lblParser SRClbl <|> sParser regParser SRCreg <|> sParser vccParser SRCvcc <|>
             sParser memParser SRCmem <|> sParser immParser SRCimm <|>
-            sParser flgParser SRCflg <|> sParser lblParser SRClbl where
+            sParser flgParser SRCflg where
                 sParser parser op = do
                     v <- parser
                     return (op v)
@@ -166,7 +170,7 @@ lblParser = lParser decimal LBLA <|> lParser takeText LBLF where
 
 cmdParser :: Parser CMD
 cmdParser = cParser "and" AND <|> cParser "or" OR <|> cParser "add" ADD <|> cParser "sub" SUB <|>
-            cParser "mul" MUL <|> cParser "div" DIV <|> cParser "cmp" CMP <|> cParser "jmp" JMP <|>
+            cParser "mul" MUL <|> cParser "div" DIV <|> cParser "cmp" CMP <|> jmpParser <|>
             cParser "mov" MOV <|> cParser "head" HEAD <|> cParser "tail" TAIL <|> callParser <|>
             retParser <|> dParser "push" PUSH <|> dParser "pop" POP where
                 cParser token op = do
@@ -189,3 +193,10 @@ cmdParser = cParser "and" AND <|> cParser "or" OR <|> cParser "add" ADD <|> cPar
                 retParser = do
                     string "ret"
                     return RET
+                jmpParser = do
+                    string "jmp"
+                    space
+                    dst <- srcParser
+                    space
+                    src <- srcParser
+                    return (JMP dst src)

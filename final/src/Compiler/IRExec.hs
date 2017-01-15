@@ -24,9 +24,10 @@ execWrapper :: String -> IO ()
 execWrapper inp = do
     inh <- openFile inp ReadMode
     --(initEnv, codeSeg) <- runStateT initialEnvLoop inh ((M.empty, M.empty, [], 0, 0, []) [ENDITEM])
-    (initEnv, codeSeg) <- runStateT (initialEnvLoop inh) ((M.empty, M.empty, [], 0, 0, []), [ENDITEM])
-    let initEnv' = initMTable initEnv in 
-    ---- let x = execIRLoop initEnv codeSeg
+    (_, (initEnv, codeSeg)) <- runStateT (initialEnvLoop inh) ((M.empty, M.empty, [], 1, 0, []), [])
+    print (initEnv, codeSeg)
+    let initEnv' = initMTable initEnv in print (execIRLoop initEnv' codeSeg)
+    -- print (initEnv', codeSeg)
     hClose inh
 
 initialEnvLoop :: Handle -> ExecVM ()
@@ -55,11 +56,14 @@ envParse env seg line = case parseOnly lblParser $ pack line of
         _ -> (env, seg)
 
 execIRLoop :: VMEnv -> CodeSeg -> VMEnv
-execIRLoop (mt, lblt, vs, layer, eip, cstk) seg = case seg !! eip of
-    (LBLITEM label) -> execIRLoop (mt, lblt, vs, layer, eip + 1, cstk) seg
-    (CMDITEM cmd) -> execIRLoop env' seg where
-        env' = execCMD cmd (mt, lblt, vs, layer, eip, cstk)
-    _ -> (mt, lblt, vs, layer, eip, cstk)
+execIRLoop env@(mt, lblt, vs, layer, eip, cstk) seg
+    | layer == 0 = (mt, lblt, vs, layer, eip, cstk)
+    | eip >= Prelude.length seg = env
+    | otherwise = case seg !! eip of
+        (LBLITEM label) -> execIRLoop (mt, lblt, vs, layer, eip + 1, cstk) seg
+        (CMDITEM cmd) -> execIRLoop env' seg where
+            env' = execCMD cmd (mt, lblt, vs, layer, eip, cstk)
+        _ -> (mt, lblt, vs, layer, eip, cstk)
 
 execCMD :: CMD -> VMEnv -> VMEnv
 execCMD (ADD dst src) env = (updateEIP env') where
@@ -83,9 +87,9 @@ execCMD (MUL dst src) env = (updateEIP env') where
     IMMnum v3 = IMMnum (v1 * v2)
     env' = updateDST dst (IMMnum v3) env
 execCMD (MOV dst src) env = (updateEIP env') where
-    IMMnum v1 = execDST dst env
-    IMMnum v2 = execSRC src env
-    env' = updateDST dst (IMMnum v2) env
+    v1 = execDST dst env
+    v2 = execSRC src env
+    env' = updateDST dst v2 env
 execCMD (AND dst src) env = (updateEIP env') where
     IMMbool v1 = execDST dst env
     IMMbool v2 = execSRC src env
@@ -110,30 +114,44 @@ execCMD (CMP dst src) env = (updateEIP env') where
     mt' = M.insert "Gr" (IMMbool gr) (M.insert "Lw" (IMMbool lw) (M.insert "Eq" (IMMbool eq) mt))
     env' = (mt', lblt, vs, layer, eip, cstk)
 execCMD (JMP dst src) env = env' where
-    IMMnum v1 = execDST dst env
-    lbl = show dst
+    (IMMlabel v1) = execSRC dst env
+    lbl = show v1
     IMMbool v2 = execSRC src env
     (mt, lblt, vs, layer, eip, cstk) = env
     Just eip' = if v2 then (M.lookup lbl lblt) else (Just (eip + 1))
     env' = (mt, lblt, vs, layer, eip', cstk)
--- execCMD (PUSH src) env = (updateEIP env') where
---     v2 = execSRC src env
---     (mt, lblt, vs, layer, eip, cstk) = env
---     vs' = v2 : vs
---     env' = (mt, lblt, vs', layer, eip, cstk)
--- execCMD (POP dst) env = (updateEIP env') where
---     (mt, lblt, vs, layer, eip, cstk) = env
---     (x: xs) = vs
---     (mt', lblt', vs', layer', eip', cstk') = updateDST dst x
---     (x', xs') = vs'
---     env' = (mt', lblt', xs', layer', eip', cstk')
+execCMD (CALL lbl) env = env' where
+    (mt, lblt, vs, layer, eip, cstk) = env
+    layer' = layer + 1
+    cstk' = (eip + 1):cstk
+    Just eip' = M.lookup (show lbl) lblt
+    env' = (mt, lblt, vs, layer', eip', cstk')
+execCMD RET env = env' where
+    (mt, lblt, vs, layer, eip, cstk) = env
+    (x, xs) = case cstk of
+        [] -> (eip, [])
+        (y:ys) -> (y, ys)
+    layer' = layer - 1
+    env' = (mt, lblt, vs, layer', x, xs)
+execCMD (PUSH dst) env = (updateEIP env') where
+    v2 = execDST dst env
+    (mt, lblt, vs, layer, eip, cstk) = env
+    vs' = v2 : vs
+    env' = (mt, lblt, vs', layer, eip, cstk)
+execCMD (POP dst) env = (updateEIP env') where
+    (mt, lblt, vs, layer, eip, cstk) = env
+    (x: xs) = vs
+    (mt', lblt', vs', layer', eip', cstk') = updateDST dst x env
+    (x': xs') = vs'
+    env' = (mt', lblt', xs', layer', eip', cstk')
 
 
 execSRC :: SRC -> VMEnv -> IMM
-execSRC (SRCimm e) env =  e
+execSRC (SRCimm e) env = e
 execSRC (SRCvcc (VCC memo d)) env = list V.! d where
     (mt, lblt, vs, layer, eip, cstk) = env
     Just (IMMVector list) = M.lookup (show memo) mt
+execSRC (SRClbl l) env = IMMlabel l
 execSRC a env = imm where
     (mt, lblt, vs, layer, eip, cstk) = env
     Just imm = M.lookup (show a) mt

@@ -16,19 +16,20 @@ readMod ('-':'i':' ':i) = Just (Input i)
 readMod ('-':'t':' ':t) = Just (Prog t)
 readMod _ = Nothing
 
-readcl :: [String] -> [Mod]
-readcl [] = []
-readcl (x:y:xs) = case readMod (x ++ " " ++ y) of
-    Just (Output o) -> a
-    Just (Input i) ->
-    Just (Prog t) -> 
-readcl (x:xs) = case readMod x of
-    Just m ->
-
-main :: IO ()
-main = do
-    args <- getArgs
-    runReplT
+-- readcl :: [String] -> [Mod]
+-- readcl [] = []
+-- readcl (x:y:xs) = case readMod (x ++ " " ++ y) of
+--     Just (Output o) -> a
+--     Just (Input i) ->
+--     Just (Prog t) ->
+-- readcl (x:xs) = case readMod x of
+--     Just m ->
+--
+-- main :: IO ()
+-- <<<<<<< HEAD
+-- main = do
+--     args <- getArgs
+--     runReplT
 
 -- main = translateLang "/Users/ocNflag/Desktop/in.txt" "/Users/ocNflag/Desktop/out.txt"
 -- =======
@@ -40,3 +41,5 @@ main = do
 -- --main = runReplT
 -- main = execWrapper "/Users/lustralisk/Desktop/out.txt"
 -- >>>>>>> ffda66adad8d9675f4eb2e94769864cc3cbf6909
+--main = runReplT
+main = execWrapper "/Users/dycraft/Desktop/out.txt"
