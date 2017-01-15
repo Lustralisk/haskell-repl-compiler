@@ -96,8 +96,16 @@ evalExprParser expr@(Variable t) = do
 evalExprParser expr@(Vec t e) = do
     v <- search t
     case v of
-        Undefined -> throwError $ NotFoundError t expr
-        _ -> return v
+        (ListValue l) -> do
+            (DoubleValue i) <- evalExprParser e
+            if isInt i
+                then let i' = fromEnum i in if (i' >= 0) && (i' < Prelude.length l)
+                    then do
+                        insert t (ListValue [Undefined | i' <- [1..Prelude.length l]])
+                        return (l !! i')
+                    else throwError $ OutOfIndexError v e
+                else throwError $ TypeError (DoubleValue i) e
+        _ -> throwError $ NotFoundError t expr
 evalExprParser expr@(Function t es) = do
     v <- search t
     case v of
