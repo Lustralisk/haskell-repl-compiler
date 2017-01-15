@@ -1,32 +1,45 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Compiler.CompExec where
+module Compiler.IRExec where
 
 import Data.Text
+import System.IO
 import Data.Either
 import Data.Attoparsec.Text
+import qualified Data.Vector as V
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Compiler.IRParser
 import Compiler.IR
 
-execWrapper :: String -> VMEnv
-buildInitialEnv inp oup = do
+execWrapper :: String -> IO()
+execWrapper inp = do
     inh <- openFile inp ReadMode
-    (initEnv, codeSeg) <- initialEnvLoop inh  (M.empty, M.empty, [], 0, 0, []) [ENDITEM]
-    let x = execIRLoop initEnv codeSeg
-    print x
+    (initEnv, codeSeg) <- initialEnvLoop inh (M.empty, M.empty, [], 0, 0, []) [ENDITEM]
+    -- let x = execIRLoop initEnv codeSeg
     hClose inh
 
-initialEnvLoop :: Handle -> VMEnv -> CodeSeg -> IO ()
+initialEnvLoop :: Handle -> VMEnv -> CodeSeg -> IO ((VMEnv, CodeSeg))
 initialEnvLoop inh env seg = do
     isEof <- hIsEOF inh
     if isEof
         then return (env, seg)
     else do
-        line <- hGetLine inh
+        curline <- hGetLine inh
         initialEnvLoop inh env' seg' where
-            (env', seg') = envParse env seg line
+            (env', seg') = envParse env seg curline
+
+envParse :: VMEnv -> CodeSeg -> String -> (VMEnv, CodeSeg)
+envParse env seg line = case parseOnly lblParser $ pack line of
+    (Right lbl) -> (env', seg ++ [(LBLITEM lbl)]) where
+        (mt, lblt, vs, layer, eip, cstk) = env
+        curindex = (Prelude.length seg)
+        lblt' = M.insert (show lbl) curindex lblt
+        eip' = if (show lbl) == "$$main" then curindex else eip
+        env' = (mt, lblt', vs, layer, eip', cstk)
+    _  -> case parseOnly cmdParser $ pack line of
+        (Right cmd) -> (env, seg ++ [(CMDITEM cmd)])
+        _ -> (env, seg)
 
 execIRLoop :: VMEnv -> CodeSeg -> VMEnv
 execIRLoop (mt, lblt, vs, layer, eip, cstk) seg = case seg !! eip of
@@ -36,102 +49,102 @@ execIRLoop (mt, lblt, vs, layer, eip, cstk) seg = case seg !! eip of
     _ -> (mt, lblt, vs, layer, eip, cstk)
 
 execCMD :: CMD -> VMEnv -> VMEnv
-execCMD (ADD dst src) env = updateEIP env' where
+execCMD (ADD dst src) env = (updateEIP env') where
      IMMnum v1 = execDST dst env
      IMMnum v2 = execSRC src env
      IMMnum v3 = IMMnum (v1 + v2)
-     env' = updateDST dst v3
-execCMD (SUB dst src) env = updateEIP env' where
+     env' = updateDST dst (IMMnum v3) env
+execCMD (SUB dst src) env = (updateEIP env') where
     IMMnum v1 = execDST dst env
     IMMnum v2 = execSRC src env
     IMMnum v3 = IMMnum (v1 - v2)
-    env' = updateDST dst v3
-execCMD (DIV dst src) env = updateEIP env' where
+    env' = updateDST dst (IMMnum v3) env
+execCMD (DIV dst src) env = (updateEIP env') where
     IMMnum v1 = execDST dst env
     IMMnum v2 = execSRC src env
     IMMnum v3 = IMMnum (v1 / v2)
-    env' = updateDST dst v3
-execCMD (MUL dst src) env = updateEIP env' where
+    env' = updateDST dst (IMMnum v3) env
+execCMD (MUL dst src) env = (updateEIP env') where
     IMMnum v1 = execDST dst env
     IMMnum v2 = execSRC src env
     IMMnum v3 = IMMnum (v1 * v2)
-    env' = updateDST dst v3
-execCMD (MOV dst src) env = updateEIP env' where
+    env' = updateDST dst (IMMnum v3) env
+execCMD (MOV dst src) env = (updateEIP env') where
     IMMnum v1 = execDST dst env
     IMMnum v2 = execSRC src env
-    env' = updateDST dst v2
-execCMD (AND dst src) env = updateEIP env' where
+    env' = updateDST dst (IMMnum v2) env
+execCMD (AND dst src) env = (updateEIP env') where
     IMMbool v1 = execDST dst env
     IMMbool v2 = execSRC src env
     IMMbool v3 = IMMbool (v1 && v2)
-    env' = updateDST dst v3
-execCMD (OR dst src) env = updateEIP env' where
+    env' = updateDST dst (IMMbool v3) env
+execCMD (OR dst src) env = (updateEIP env') where
     IMMbool v1 = execDST dst env
     IMMbool v2 = execSRC src env
     IMMbool v3 = IMMbool (v1 || v2)
-    env' = updateDST dst v3
-execCMD (NOT dst) env = updateEIP env' where
+    env' = updateDST dst (IMMbool v3) env
+execCMD (NOT dst) env = (updateEIP env') where
     IMMbool v1 = execDST dst env
     IMMbool v3 = IMMbool (not v1)
-    env' = updateDST dst v3
-execCMD (CMP dst src) env = updateEIP env' where
+    env' = updateDST dst (IMMbool v3) env
+execCMD (CMP dst src) env = (updateEIP env') where
     IMMnum v1 = execDST dst env
     IMMnum v2 = execSRC src env
     eq = v1 == v2
     lw = v1 < v2
     gr = v1 > v2
     (mt, lblt, vs, layer, eip, cstk) = env
-    mt' = M.insert "Gr" gr (M.insert "Lw" lw (M.insert "Eq" (IMMbool eq)))
+    mt' = M.insert "Gr" (IMMbool gr) (M.insert "Lw" (IMMbool lw) (M.insert "Eq" (IMMbool eq) mt))
     env' = (mt', lblt, vs, layer, eip, cstk)
 execCMD (JMP dst src) env = env' where
     IMMnum v1 = execDST dst env
     lbl = show dst
     IMMbool v2 = execSRC src env
     (mt, lblt, vs, layer, eip, cstk) = env
-    eip' = if v2 then fromJust (M.lookup lbl lblt) else eip + 1
+    Just eip' = if v2 then (M.lookup lbl lblt) else (Just (eip + 1))
     env' = (mt, lblt, vs, layer, eip', cstk)
-execCMD (PUSH src) env = updateEIP env' where
-    v2 = execSRC src env
-    (mt, lblt, vs, layer, eip, cstk) = env
-    vs' = v2 : vs
-    env' = (mt, lblt, vs', layer, eip, cstk)
-execCMD (POP dst) env = updateEIP env' where
-    (mt, lblt, vs, layer, eip, cstk) = env
-    (x: xs) = vs
-    (mt', lblt', vs', layer', eip', cstk') = updateDST dst x
-    (x', xs') = vs'
-    env' = (mt', lblt', xs', layer', eip', cstk')
+-- execCMD (PUSH src) env = (updateEIP env') where
+--     v2 = execSRC src env
+--     (mt, lblt, vs, layer, eip, cstk) = env
+--     vs' = v2 : vs
+--     env' = (mt, lblt, vs', layer, eip, cstk)
+-- execCMD (POP dst) env = (updateEIP env') where
+--     (mt, lblt, vs, layer, eip, cstk) = env
+--     (x: xs) = vs
+--     (mt', lblt', vs', layer', eip', cstk') = updateDST dst x
+--     (x', xs') = vs'
+--     env' = (mt', lblt', xs', layer', eip', cstk')
 
 
 execSRC :: SRC -> VMEnv -> IMM
 execSRC (SRCimm e) env =  e
-execSRC (SRCvcc (VCC memo d)) env = list ! d where
+execSRC (SRCvcc (VCC memo d)) env = list V.! d where
     (mt, lblt, vs, layer, eip, cstk) = env
-    IMMVector list = M.lookup memo mt
+    Just (IMMVector list) = M.lookup (show memo) mt
 execSRC a env = imm where
     (mt, lblt, vs, layer, eip, cstk) = env
-    imm = M.lookup (show a) mt
+    Just imm = M.lookup (show a) mt
 
 execDST :: DST -> VMEnv -> IMM
-execDST (DSTvcc (VCC memo d)) env = list ! d where
-    (mt, rt, ft, lblt, vt, layer, eip, cstk) = env
-    IMMVector list = M.lookup (show memo) mt
+execDST (DSTvcc (VCC memo d)) env = list V.! d where
+    (mt, lblt, vs, layer, eip, cstk) = env
+    Just (IMMVector list) = M.lookup (show memo) mt
 execDST a env = imm where
-    (mt, rt, ft, lblt, vt, layer, eip, cstk) = env
-    imm = M.lookup (show a) mt
+    (mt, lblt, vs, layer, eip, cstk) = env
+    Just imm = M.lookup (show a) mt
 
 updateDST :: DST -> IMM -> VMEnv -> VMEnv
 updateDST (DSTvcc (VCC memo d)) imm env = env' where
-    (mt, rt, ft, lblt, vt, layer, eip, cstk) = env
-    env' = (mt', rt, ft, lblt, vt, layer, eip, cstk)
-    IMMVector list = M.lookup (show memo) mt
-    IMMnum index = M.lookup "B" mt
-    list' = list // [(index, imm)]
-    mt' = M.insert (show memo)list' mt
+    (mt, lblt, vs, layer, eip, cstk) = env
+    env' = (mt', lblt, vs, layer, eip, cstk)
+    Just (IMMVector list) = M.lookup (show memo) mt
+    Just (IMMnum index) = M.lookup "B" mt
+    list' = list V.// [(fromEnum index, imm)]
+    mt' = M.insert (show memo) (IMMVector list') mt
 updateDST a imm env = env' where
-    (mt, rt, ft, lblt, vt, layer, eip, cstk) = env
-    env' = (mt', rt, ft, lblt, vt, layer, eip, cstk)
-    mt' =  M.insert (show memo) imm mt
+    (mt, lblt, vs, layer, eip, cstk) = env
+    env' = (mt', lblt, vs, layer, eip, cstk)
+    mt' =  M.insert (show a) imm mt
 
 updateEIP :: VMEnv -> VMEnv
-updateEIP (mt, rt, ft, lblt, vt, layer, eip, cstk) = (mt, rt, ft, lblt, vt, layer, eip + 1, cstk)
+updateEIP (mt, lblt, vs, layer, eip, cstk) = (mt, lblt, vs, layer, eip + 1, cstk)

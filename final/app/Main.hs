@@ -4,7 +4,9 @@ module Main where
 
 import Exec
 import Compiler.Comp
+import Compiler.IRExec
+
 
 main :: IO ()
-main = runReplT
--- main = translateLang "/Users/ocNflag/Desktop/in.txt" "/Users/ocNflag/Desktop/out.txt"
+-- main = runReplT
+main = execWrapper "/Users/ocNflag/Desktop/out.txt"

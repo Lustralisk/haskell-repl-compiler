@@ -22,6 +22,8 @@ library
                      , Printer
                      , Compiler.CompExec
                      , Compiler.Comp
+                     , Compiler.IRExec
+                     , Compiler.IR
   build-depends:       base >= 4.7 && < 5
                      , text
                      , attoparsec
