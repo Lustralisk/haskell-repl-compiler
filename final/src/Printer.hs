@@ -31,6 +31,13 @@ printExpr offset style (Function t es') = case es' of
         trans = ("\r\n" `append`).(printExpr offset' True)
         ss = concate $ Prelude.map trans es
 
+printExpr offset style (Lambda t e) = (offset, style) >>> ["(lambda ", t, "\r\n", s, ")"] where
+    s = printExpr (offset + 8 + Data.Text.length t) True e
+
+printExpr offset style (LambdaCall e1 e2) = (offset, style) >>> ["(", s1, " ", s2, ")"] where
+    s1 = printExpr (offset + 1) True e1
+    s2 = printExpr (offset + 1) True e2
+
 printExpr offset style (Let t e1 e2) = (offset, style) >>> ["(let ", t, "\r\n", s1, "\r\n", s2, ")"] where
     s1 = printExpr (offset + 2) True e1
     s2 = printExpr (offset + 2) True e2

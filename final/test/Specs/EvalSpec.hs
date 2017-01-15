@@ -2,13 +2,14 @@
 
 module Specs.EvalSpec where
 
-import Data.Text
+import Data.Text hiding (all)
 import Test.QuickCheck
 import qualified Data.Map as M
 import Control.Applicative
 import Control.Monad.Except
 import Control.Monad.State
 import Parser
+import Printer
 import EvalT
 
 runCode :: Text -> Env -> Env
@@ -22,8 +23,11 @@ assertEnv env ((var, value):xs) = case M.lookup (pack var) env of
     Nothing -> (value == Undefined) && assertEnv env xs
 
 test :: String -> [(String, Value)] -> Bool
-test code = assertEnv env' where
+test code c = assertEnv env' c &&  assertEnv env'' c where
     env' = runCode (pack code) M.empty
+    prettyCode = replace "\r\n" " " $ prettyPrint $ pack code
+    env'' = runCode prettyCode M.empty
+
 
 -- triple: (desciption, code, assert table)
 evalSpecs = packSpecs [

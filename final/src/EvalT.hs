@@ -320,6 +320,7 @@ showEvalExpr (BoolValue b) = show b
 showEvalExpr (DoubleValue d) = show d
 showEvalExpr (CharValue c) = show c
 showEvalExpr (FunctionValue [t] s e) = show [t] ++ " " ++ show s ++ " " ++ show e
+showEvalExpr Undefined = "Undefined"
 showEvalExpr (ListValue l) = Prelude.concat [showEvalExpr li ++ ", " | li <- l]
 
 printEvalExpr :: Eval Value -> Eval String
