@@ -5,13 +5,13 @@ module Compiler.IR where
 import Control.Applicative
 import Data.Functor
 import Data.Either
+import System.IO
 import Control.Monad
 import qualified Data.Map as M
 import qualified Data.Set as S
 
 import System.IO
-import Parser
-import Compiler.CompExec
+import Compiler.IRParser
 
 type MTable = M.Map String IMM
 type LblTable = M.Map String Int

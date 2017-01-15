@@ -20,8 +20,11 @@ library
                      , EvalT
                      , Exec
                      , Printer
-                     , Compiler.CompExec
                      , Compiler.Comp
+                     , Compiler.CompExec
+                     , Compiler.IRParser
+                     , Compiler.IR
+                     , Compiler.IRExec
   build-depends:       base >= 4.7 && < 5
                      , text
                      , attoparsec
@@ -44,6 +47,7 @@ executable final-exe
                      , pretty
                      , GenericPretty
                      , mtl
+                     , vector
                      , containers
   default-language:    Haskell2010
 
