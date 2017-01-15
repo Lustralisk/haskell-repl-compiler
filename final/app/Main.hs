@@ -12,9 +12,8 @@ main :: IO ()
 main = do
     cmd <- getArgs
     case cmd of
-        ["-i", file1, "-o", file2] -> return ()
-        ["-t", file1, "-o", file2] -> return ()
-        [file1, "-o", file2, "-is", arch] -> return ()
-        [file1, "-o", file2] -> return ()
+        ["-i", file1, "-o", file2] -> return () -- 解释执行
+        ["-t", file1, "-o", file2] -> return () -- 输出语法树
+        [file1, "-o", file2] -> return () -- 编译
         ["-repl"] -> runReplT
 --main = execWrapper "/Users/ocNflag/Desktop/out.txt"

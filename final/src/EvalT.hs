@@ -291,6 +291,13 @@ evalStatementParser (Return e) = do
 evalFunctionParser :: Function -> Eval ()
 evalFunctionParser (Def t ts stmt) = modify $ updateM t ts stmt
 
+evalProgramParser :: Program -> Eval ()
+evalProgramParser (Prog funcs) = case funcs of
+    [] -> return ()
+    (f:fs) -> do
+        evalFunctionParser f
+        evalProgramParser (Prog fs)
+
 evalExpr :: String -> Eval Value
 evalExpr t = case parseOnly exprParser $ pack t of
     (Right expr) -> evalExprParser expr
@@ -306,10 +313,15 @@ evalFunction line = case parseOnly functionParser $ pack line of
     (Right function) -> evalFunctionParser function
     (Left msg) -> throwError $ ParseError $ pack msg
 
+evalProgram :: String -> Eval ()
+evalProgram line = case parseOnly programParser $ pack line of
+    (Right program) -> evalProgramParser program
+    (Left msg) -> throwError $ ParseError $ pack msg
+
 
 eval :: String -> Eval String
-eval line = case parseOnly functionParser $ pack line of
-    (Right function) -> (\() -> "") `liftM` evalFunctionParser function
+eval line = case parseOnly programParser $ pack line of
+    (Right program) -> (\() -> "") `liftM` evalProgramParser program
     _ -> case parseOnly statementParser $ pack line of
         (Right statement) -> (\() -> "") `liftM` evalStatementParser statement
         _ -> printEvalExpr $ evalExpr line

@@ -2,15 +2,15 @@
 
 module Exec where
 
-import Prelude hiding (count, getLine, concat, putStrLn)
+import Prelude hiding (count, getLine, concat, putStrLn, drop, readFile)
 import Control.Applicative
 import Data.Functor
 import Data.Either
 import Data.Text
-import Data.Text.IO (getLine, putStrLn)
+import Data.Text.IO (getLine, putStrLn, readFile)
 import Control.Monad
 import qualified Data.Map as M
-import System.IO hiding (getLine, putStrLn)
+import System.IO hiding (getLine, putStrLn, readFile)
 -- import System.Console.Readline
 import Control.Monad.State
 import Control.Monad.Trans
@@ -51,7 +51,7 @@ prettyPrinter s = prettyPrinterLoop $ splitOn "\r\n" $ prettyPrint s
 ---   Pretty [Expr/Statement/Function]
 ---   Exec [Expr]
 ---   Define [Function]
--------------------------------------------------------------------------------
+------------------------------------------------------------------------------- 
 
 replT :: Repl ()
 replT = do
@@ -62,8 +62,20 @@ replT = do
     case newCount cnt line of
         0 -> unless (line == ":q") $
                 if line =| ":i" then do
-                    put (env, "", "", 0)
-                    replT
+                    content <- io $ readFile $ unpack $ drop 3 line
+                    let out = runResult content env
+                    case out of
+                        (Right "", env') -> do
+                            put (env', "", content, 0)
+                            replT
+                        (Right s, env') -> do
+                            io $ putStrLn $ pack s
+                            put (env', "", content, 0)
+                            replT
+                        (Left err, _) -> do
+                            io $ putStrLn $ pack $ show (err::Errors)
+                            put (env, "", "", 0)
+                            replT
                 else
                     if line =| ":t" then do
                         io $ prettyPrinter hist
