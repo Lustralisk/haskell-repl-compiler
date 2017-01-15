@@ -36,7 +36,22 @@ library
                      , QuickCheck
   default-language:    Haskell2010
 
-executable final-exe
+executable ki
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , final
+                     , text
+                     , attoparsec
+                     , pretty
+                     , GenericPretty
+                     , mtl
+                     , vector
+                     , containers
+  default-language:    Haskell2010
+
+executable kc
   hs-source-dirs:      app
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
@@ -61,6 +76,7 @@ test-suite final-test
                      , attoparsec
                      , containers
                      , QuickCheck
+                     , mtl
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
