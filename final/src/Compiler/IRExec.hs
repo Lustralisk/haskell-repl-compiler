@@ -24,7 +24,8 @@ execWrapper :: String -> IO ()
 execWrapper inp = do
     inh <- openFile inp ReadMode
     --(initEnv, codeSeg) <- runStateT initialEnvLoop inh ((M.empty, M.empty, [], 0, 0, []) [ENDITEM])
-    runStateT (initialEnvLoop inh) ((M.empty, M.empty, [], 0, 0, []), [ENDITEM]) >> return ()
+    (initEnv, codeSeg) <- runStateT (initialEnvLoop inh) ((M.empty, M.empty, [], 0, 0, []), [ENDITEM])
+    
     ---- let x = execIRLoop initEnv codeSeg
     hClose inh
 
