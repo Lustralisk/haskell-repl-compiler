@@ -15,7 +15,7 @@ import System.IO hiding (getLine, putStrLn, readFile)
 import Control.Monad.State
 import Control.Monad.Trans
 import Parser
-import EvalT
+import Eval
 import Printer
 import Debug.Trace
 

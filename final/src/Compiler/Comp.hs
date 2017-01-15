@@ -8,7 +8,7 @@ import Data.Attoparsec.Text
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Parser
-import EvalT
+import Eval
 
 data CmpValue = DefaultValue
            | FuncValue [Text] Statement CompTable

@@ -6,13 +6,14 @@ import Test.QuickCheck
 import qualified Data.Map as M
 import Control.Applicative
 import Parser
-import EvalT
+import Eval
 import Specs.ParserTest
 
 evalTests = [("Boolean expression return Bool", quickCheck prop_resultIsBoolValue),
             ("Number expression return Number", quickCheck prop_resultIsDoubleValue),
             ("And False Expr is False", quickCheck prop_resultIsFalse),
-            ("Or True Expr is True", quickCheck prop_resultIsTrue)]
+            ("Or True Expr is True", quickCheck prop_resultIsTrue),
+            ("Double Check", quickCheck prop_doubleCheck)]
 
 prop_resultIsBoolValue :: Property
 prop_resultIsBoolValue = forAll (genBooleanExpr 10) $ \x -> case runEvalExpr $ show x of
@@ -33,4 +34,10 @@ prop_resultIsDoubleValue :: Property
 prop_resultIsDoubleValue = forAll (genNumberExpr 8) $ \x -> case runEvalExpr $ show x of
     (Right (DoubleValue _)) -> True
     (Left (DividedByZeroError _)) -> True
+    _ -> False
+
+prop_doubleCheck :: Property
+prop_doubleCheck = forAll (genStatement 200) $ \x -> case runEvalExpr $ show x of
+    (Right _) -> True
+    (Left _) -> True
     _ -> False
