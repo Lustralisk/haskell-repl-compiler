@@ -100,9 +100,7 @@ evalExprParser expr@(Vec t e) = do
             (DoubleValue i) <- evalExprParser e
             if isInt i
                 then let i' = fromEnum i in if (i' >= 0) && (i' < Prelude.length l)
-                    then do
-                        insert t (ListValue [Undefined | i' <- [1..Prelude.length l]])
-                        return (l !! i')
+                    then return (l !! i')
                     else throwError $ OutOfIndexError v e
                 else throwError $ TypeError (DoubleValue i) e
         _ -> throwError $ NotFoundError t expr
@@ -318,7 +316,6 @@ evalProgram line = case parseOnly programParser $ pack line of
     (Right program) -> evalProgramParser program
     (Left msg) -> throwError $ ParseError $ pack msg
 
-
 eval :: String -> Eval String
 eval line = case parseOnly programParser $ pack line of
     (Right program) -> do
@@ -326,8 +323,9 @@ eval line = case parseOnly programParser $ pack line of
         main <- search "main"
         case main of
             (FunctionValue ts stmt env') -> do
-                printEvalExpr $ evalExpr "(main)"
+                v <- printEvalExpr $ evalExpr "(main)"
                 (\() -> "") `liftM` delete "main"
+                return v
             _ -> return ""
     _ -> case parseOnly statementParser $ pack line of
         (Right statement) -> (\() -> "") `liftM` evalStatementParser statement

@@ -2,15 +2,15 @@
 
 module Exec where
 
-import Prelude hiding (count, getLine, concat, putStrLn, drop, readFile)
+import Prelude hiding (count, getLine, concat, putStrLn, drop, readFile, writeFile, appendFile)
 import Control.Applicative
 import Data.Functor
 import Data.Either
 import Data.Text
-import Data.Text.IO (getLine, putStrLn, readFile)
+import Data.Text.IO (getLine, putStrLn, readFile, writeFile, appendFile)
 import Control.Monad
 import qualified Data.Map as M
-import System.IO hiding (getLine, putStrLn, readFile)
+import System.IO hiding (getLine, putStrLn, readFile, writeFile, appendFile)
 -- import System.Console.Readline
 import Control.Monad.State
 import Control.Monad.Trans
@@ -42,6 +42,39 @@ prettyPrinterLoop ts = case ts of
 
 prettyPrinter :: Text -> IO ()
 prettyPrinter s = prettyPrinterLoop $ splitOn "\r\n" $ prettyPrint s
+
+
+genASTLoop :: String -> [Text] -> IO ()
+genASTLoop path ts = case ts of
+    [] -> return ()
+    (x:xs) -> do
+        appendFile path x
+        appendFile path "\n"
+        genASTLoop path xs
+
+genAST :: String -> String -> IO ()
+genAST fin fout = do
+    content <- readFile fin
+    let lines = splitOn "\r\n" $ prettyPrint content
+    writeFile fout ""
+    genASTLoop fout lines
+
+genRstLoop :: String -> [Text] -> IO ()
+genRstLoop path ts = case ts of
+    [] -> return ()
+    (x:xs) -> do
+        appendFile path x
+        appendFile path "\n"
+        genRstLoop path xs
+
+genRst :: String -> String -> IO ()
+genRst fin fout = do
+    content <- readFile fin
+    let out = runResult content M.empty
+    case out of
+        (Right "", _) -> return ()
+        (Right s, _) -> writeFile fout $ pack s
+        (Left err, _) -> writeFile fout $ pack $ show err        
 
 -------------------------------------------------------------------------------
 --- REPL loop
