@@ -192,6 +192,7 @@ stack exec kc -- /Users/.../out.txt -ir
 
 # Example
 - KMP algorithm
+
 ```
 (define (kmp text pattern m n)
   (begin
