@@ -238,7 +238,6 @@ stack exec kc -- /Users/.../out.txt -ir
     (return answer)
   )
 )
-
 (define (main)
   (begin
     (make-vector text 8)
